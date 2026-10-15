@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
-<title>SIKAP Guru dan Admin MAN Balikpapan</title>
+<title>SIKAP Siswa MAN Balikpapan</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: centered portal gate, then a single-column dashboard shell with tab strip for staff */
@@ -161,7 +161,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function seed(){
   var st=[["s1","24001","Ahmad Fauzan Ramadhan","XI IPA 1"],["s2","24002","Siti Nur Aisyah","XI IPA 1"],["s3","24003","Muhammad Rizky Pratama","XI IPA 1"],["s4","24004","Nabila Putri Anggraini","XI IPS 2"],["s5","24005","Fajar Nugroho","XI IPS 2"],["s6","24006","Khairunnisa Salsabila","XI IPS 2"]]
    .map(function(x){return {id:x[0],nis:x[1],nama:x[2],kelas:x[3],pass:x[1]}});
-  var staff=[{id:"a1",user:"admin",nama:"Admin Kesiswaan",role:"Admin",pass:"admin123"},{id:"g1",user:"guru.bk",nama:"Bapak Hendra Wijaya, S.Pd",role:"Guru BK",pass:"guru123"},{id:"g2",user:"guru.piket",nama:"Ibu Rahmawati, S.Pd",role:"Guru piket",pass:"piket123",piket:[1,4],kelas:["XI IPA 1"]},{id:"g3",user:"guru.mapel",nama:"Bapak Yusuf Hidayat, S.Ag",role:"Guru mapel",pass:"mapel123",kelas:["XI IPA 1","XI IPS 2"]},{id:"g4",user:"wali.ips2",nama:"Ibu Siti Aminah, S.Pd",role:"Wali kelas",pass:"wali123",kelas:["XI IPS 2"]},{id:"g5",user:"waka.siswa",nama:"Bapak Drs. Ahmad Syafii",role:"Waka Siswa",pass:"waka123"},{id:"k1",user:"kepala",nama:"Bapak Dr. H. Mulyadi, M.Pd",role:"Kepala madrasah",pass:"kepala123"}];
+  var staff=[];
   var rec=[
    {id:uid(),sid:"s1",type:"pelanggaran",kat:"Terlambat masuk sekolah",poin:5,cat:"Terlambat 15 menit karena macet.",tgl:"2026-10-05"},
    {id:uid(),sid:"s2",type:"reward",kat:"Juara lomba tingkat kota atau provinsi",poin:20,cat:"Juara 2 lomba pidato bahasa Arab tingkat kota.",tgl:"2026-10-07"},
@@ -180,7 +180,7 @@ function load(){try{var r=localStorage.getItem(KEY);if(r){D=JSON.parse(r);return
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
 load();
 
-var MODE='staf',HOME=MODE==='siswa'?'ls':MODE==='staf'?'lg':'portal';
+var MODE='siswa',HOME=MODE==='siswa'?'ls':MODE==='staf'?'lg':'portal';
 document.title=MODE==='staf'?'SIKAP Guru dan Admin':MODE==='siswa'?'SIKAP Siswa':document.title;
 D.late=D.late||[];D.cfg=D.cfg||{jam:'07:00'};
 if(MODE==='staf'&&(!D.staff||!D.staff.length)){D.staff=seed().staff;save()}
