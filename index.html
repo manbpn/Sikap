@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
-<title>SIKAP MAN Balikpapan</title>
+<title>SIKAP Guru dan Admin MAN Balikpapan</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: centered portal gate, then a single-column dashboard shell with tab strip for staff */
@@ -180,8 +180,11 @@ function load(){try{var r=localStorage.getItem(KEY);if(r){D=JSON.parse(r);return
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
 load();
 
+var MODE='staf',HOME=MODE==='siswa'?'ls':MODE==='staf'?'lg':'portal';
+document.title=MODE==='staf'?'SIKAP Guru dan Admin':MODE==='siswa'?'SIKAP Siswa':document.title;
 D.late=D.late||[];D.cfg=D.cfg||{jam:'07:00'};
-var S={view:'portal',user:null,kind:null,tab:'ringkasan',err:'',flash:'',loginAt:null};
+if(MODE==='staf'&&(!D.staff||!D.staff.length)){D.staff=seed().staff;save()}
+var S={view:HOME,user:null,kind:null,tab:'ringkasan',err:'',flash:'',loginAt:null};
 var $app=document.getElementById('app');
 
 function pel(id){return D.records.filter(function(r){return r.sid===id&&r.type==='pelanggaran'}).reduce(function(a,r){return a+r.poin},0)}
@@ -268,7 +271,7 @@ function vHp(){
   else{
     var r=h.res||{};
     b='<div style="text-align:center;padding-top:24px">'+(r.t==='ok'?'<span class="pt good">Tepat waktu</span><h2 style="font-size:22px;margin-top:12px">Absen masuk tercatat</h2><div class="muted">Pukul '+hm(h.at)+'</div>':r.t==='late'?'<span class="pt wait">Menunggu persetujuan</span><h2 style="font-size:22px;margin-top:12px">Laporan terkirim</h2><div class="muted" style="font-size:14px">Guru piket yang bertugas akan memeriksa alasanmu.</div>':'<h2 style="font-size:20px">Hari Minggu</h2><div class="muted">Tidak ada absen hari ini.</div>')+'</div><button class="btn" data-a="hpback">Kembali ke beranda</button>'}
-  return '<div class="stack-cards"><div><button class="back" data-a="go" data-v="portal">&larr; Kembali ke portal</button></div><div class="simnote"><b>Simulasi.</b> Ini gambaran aplikasi siswa di HP. Sidik jari, lokasi, dan jam bersifat simulasi. Aplikasi sungguhan memakai sensor biometrik HP, GPS, dan jam server.</div><div class="phone"><div class="ph-bar"><span>'+hm(now)+'</span><span>SIKAP</span></div><div class="ph-body">'+b+'</div></div></div>'}
+  return '<div class="stack-cards"><div><button class="back" data-a="go" data-v="portal">&larr; Kembali</button></div><div class="simnote"><b>Simulasi.</b> Ini gambaran aplikasi siswa di HP. Sidik jari, lokasi, dan jam bersifat simulasi. Aplikasi sungguhan memakai sensor biometrik HP, GPS, dan jam server.</div><div class="phone"><div class="ph-bar"><span>'+hm(now)+'</span><span>SIKAP</span></div><div class="ph-body">'+b+'</div></div></div>'}
 function lateCard(s){
   var now=S.loginAt||new Date(),tg=dstr(now),jam=D.cfg.jam,m=now.getHours()*60+now.getMinutes()-toMin(jam);
   var rep=D.late.find(function(x){return x.sid===s.id&&x.tgl===tg});
@@ -414,10 +417,10 @@ function vLogin(kind){
   var st=kind==='ls';
   var chips=st?D.students.slice(0,3).map(function(s){return '<button type="button" class="chip" data-a="fill" data-u="'+esc(s.nis)+'" data-p="'+esc(s.pass)+'">'+esc(s.nis)+' / '+esc(s.pass)+'</button>'}).join('')
     :D.staff.map(function(s){return '<button type="button" class="chip" data-a="fill" data-u="'+esc(s.user)+'" data-p="'+esc(s.pass)+'">'+esc(s.user)+' / '+esc(s.pass)+'</button>'}).join('');
-  return '<div class="login"><button class="back" data-a="go" data-v="portal">&larr; Kembali</button>'+brand(st?'Masuk sebagai siswa':'Masuk sebagai guru atau admin')+
+  return '<div class="login">'+(MODE==='all'?'<button class="back" data-a="go" data-v="portal">&larr; Kembali</button>':'')+brand(st?'Masuk sebagai siswa':'Masuk sebagai guru atau admin')+(st?'<div style="margin-top:12px">'+scene()+'</div>':'')+
   '<div class="card" style="margin-top:16px"><form class="stack" data-f="'+kind+'" autocomplete="off"><label>'+(st?'Nomor induk siswa (NIS)':'Username')+'<input id="lu" name="u" placeholder="'+(st?'24001':'admin')+'"></label><label>Kata sandi<input id="lp" name="p" type="text" placeholder="Kata sandi"></label>'+
   (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn'+(st?'':' gold')+'" type="submit">Masuk</button></form>'+
-  '<div class="demo"><p>Akun contoh. Ketuk untuk mengisi otomatis.</p><div class="chips">'+chips+'</div></div></div></div>'}
+  '<div class="demo"><p>Akun contoh. Ketuk untuk mengisi otomatis.</p><div class="chips">'+chips+'</div></div></div>'+(st&&MODE==='siswa'?'<p class="foot" style="margin-top:14px"><button class="back" data-a="go" data-v="hp">Lihat tampilan aplikasi di HP (simulasi)</button></p>':'')+'</div>'}
 
 function top(title,who){return '<div class="appbar"><div><h1>'+title+'</h1><div class="who">'+who+'</div></div><button class="btn sm" data-a="out">Keluar</button></div>'}
 function greet(s){var p=pel(s.id),st=p<10?['good','Disiplin baik']:p<30?['bad','Perlu perhatian']:['bad','Perlu pembinaan'];return '<div class="greet"><h2>Halo, '+esc(s.nama.split(' ')[0])+'</h2><span class="pt '+st[0]+'">'+st[1]+'</span></div>'}
@@ -479,7 +482,7 @@ function render(){
   var h=S.view==='portal'?vPortal():S.view==='ls'?vLogin('ls'):S.view==='lg'?vLogin('lg'):S.view==='siswa'?vSiswa():S.view==='hp'?vHp():vStaff();
   $app.innerHTML=h;
 }
-function go(v){if(v==='hp')S.hp={step:'login'};S.view=v;S.err='';S.flash='';render();window.scrollTo(0,0)}
+function go(v){if(v==='portal')v=HOME;if(v==='hp')S.hp={step:'login'};S.view=v;S.err='';S.flash='';render();window.scrollTo(0,0)}
 
 $app.addEventListener('click',function(e){
   var t=e.target.closest('[data-a]');if(!t)return;var a=t.dataset.a;
