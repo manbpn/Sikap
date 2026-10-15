@@ -1,10 +1,5 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
-<title>SIKAP Siswa MAN Balikpapan</title>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style><title>SIKAP Siswa MAN Balikpapan</title>
+
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: centered portal gate, then a single-column dashboard shell with tab strip for staff */
@@ -142,15 +137,14 @@ td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
   .tab{width:auto}
 }
 </style>
-</head>
-<body>
+
 <div class="wrap" id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 (function(){
 var KEY='sikap:v5';
-var KAT={pelanggaran:[["Terlambat masuk sekolah",5],["Atribut seragam tidak lengkap",5],["Tidak mengerjakan tugas",5],["Tidak mengikuti upacara atau sholat berjamaah",10],["Membolos jam pelajaran",15],["Merokok di lingkungan sekolah",25],["Berkelahi dengan siswa lain",30],["Lainnya (isi poin manual)",0]],
+var KAT={pelanggaran:[["Terlambat masuk sekolah",5],["Pulang sebelum waktunya tanpa izin",10],["Atribut seragam tidak lengkap",5],["Tidak mengerjakan tugas",5],["Tidak mengikuti upacara atau sholat berjamaah",10],["Membolos jam pelajaran",15],["Merokok di lingkungan sekolah",25],["Berkelahi dengan siswa lain",30],["Lainnya (isi poin manual)",0]],
 reward:[["Membantu teman atau warga sekolah",5],["Aktif organisasi (OSIS atau ekskul)",10],["Nilai terbaik di kelas",15],["Juara lomba tingkat kota atau provinsi",20],["Juara lomba tingkat nasional",35],["Lainnya (isi poin manual)",0]]};
 
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4)}
@@ -165,15 +159,16 @@ function seed(){
   var rec=[
    {id:uid(),sid:"s1",type:"pelanggaran",kat:"Terlambat masuk sekolah",poin:5,cat:"Terlambat 15 menit karena macet.",tgl:"2026-10-05"},
    {id:uid(),sid:"s2",type:"reward",kat:"Juara lomba tingkat kota atau provinsi",poin:20,cat:"Juara 2 lomba pidato bahasa Arab tingkat kota.",tgl:"2026-10-07"},
-   {id:uid(),sid:"s4",type:"pelanggaran",kat:"Tidak mengerjakan tugas",poin:5,cat:"Tugas Matematika tidak dikumpulkan.",tgl:"2026-10-08"},
    {id:uid(),sid:"s5",type:"reward",kat:"Aktif organisasi (OSIS atau ekskul)",poin:10,cat:"Ketua pelaksana peringatan Maulid Nabi.",tgl:"2026-10-09"},
+   {id:uid(),sid:"s4",type:"pelanggaran",kat:"Tidak mengerjakan tugas",poin:5,cat:"Tugas Matematika tidak dikumpulkan.",tgl:"2026-10-08"},
    {id:uid(),sid:"s3",type:"pelanggaran",kat:"Membolos jam pelajaran",poin:15,cat:"Tidak masuk jam ke-4 dan ke-5.",tgl:"2026-10-12"}];
   var dates=["2026-10-08","2026-10-09","2026-10-12","2026-10-13","2026-10-14"];
   var pat={s1:"hhhsh",s2:"hhhhh",s3:"hahhi",s4:"hhshh",s5:"hhhhh",s6:"ihhha"};
   var map={h:"hadir",s:"sakit",i:"izin",a:"alpa"},att=[];
   Object.keys(pat).forEach(function(sid){pat[sid].split('').forEach(function(c,k){att.push({id:uid(),sid:sid,tgl:dates[k],st:map[c]})})});
   var late=[{id:uid(),sid:"s1",tgl:today(),waktu:"07:25",menit:25,alasan:"Macet atau gangguan transportasi",status:"menunggu"}];
-  return {students:st,staff:staff,records:rec,att:att,late:late,cfg:{jam:"07:00"}};
+  var pul=[{id:uid(),sid:"s2",tgl:today(),waktu:"10:30",alasan:"Sakit atau kondisi kesehatan",cat:"Dijemput orang tua.",oleh:"Ibu Rahmawati, S.Pd"}];
+  return {students:st,staff:staff,records:rec,att:att,late:late,pulang:pul,cfg:{jam:"07:00"}};
 }
 var D;
 function load(){try{var r=localStorage.getItem(KEY);if(r){D=JSON.parse(r);return}}catch(e){}D=seed()}
@@ -182,7 +177,7 @@ load();
 
 var MODE='siswa',HOME=MODE==='siswa'?'ls':MODE==='staf'?'lg':'portal';
 document.title=MODE==='staf'?'SIKAP Guru dan Admin':MODE==='siswa'?'SIKAP Siswa':document.title;
-D.late=D.late||[];D.cfg=D.cfg||{jam:'07:00'};
+D.late=D.late||[];D.pulang=D.pulang||[];D.cfg=D.cfg||{jam:'07:00'};if(D.staff)D.staff=D.staff.filter(function(x){return x.role!=='Guru mapel'});
 if(MODE==='staf'&&(!D.staff||!D.staff.length)){D.staff=seed().staff;save()}
 var S={view:HOME,user:null,kind:null,tab:'ringkasan',err:'',flash:'',loginAt:null};
 var $app=document.getElementById('app');
@@ -198,8 +193,9 @@ function visible(sid){var s=byId(sid);return !!s&&scoped(S.user).indexOf(s)>-1}
 function kelasList(){var m={};D.students.forEach(function(s){m[s.kelas]=1});return Object.keys(m).sort()}
 function isPiket(u){return (u.piket||[]).indexOf(new Date().getDay())>-1}
 function can(u,a){var r=u.role;
-  if(a==='absen')return r==='Admin'||(r==='Guru piket'&&isPiket(u));
+  if(a==='absen'||a==='pulang')return r==='Admin'||(r==='Guru piket'&&isPiket(u));
   if(a==='setuju')return r==='Admin'||(r==='Guru piket'&&isPiket(u));
+  if(a==='reward')return r==='Admin'||r==='Waka Siswa';
   if(a==='jadwal')return r==='Admin'||r==='Waka Siswa';
   if(a==='siswa'||a==='reset'||a==='akun')return r==='Admin';
   if(a==='catat')return r!=='Kepala madrasah';
@@ -288,9 +284,9 @@ function tTelat(){
   var on=D.staff.filter(function(s){return s.role==='Guru piket'&&isPiket(s)}).map(function(s){return esc(s.nama)});
   var cfg='<div class="card"><div class="h"><h3>Batas jam masuk</h3></div>'+(adm?'<div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><label style="max-width:170px">Jam masuk<input id="jamin" type="time" value="'+esc(D.cfg.jam)+'"></label><button class="btn" data-a="jamsave">Simpan jam</button></div>'+(S.err?'<p class="err" style="margin:10px 0 0">'+esc(S.err)+'</p>':'')+(S.flash?'<p class="ok" style="margin:10px 0 0">'+esc(S.flash)+'</p>':''):'<p class="muted" style="margin:0">Siswa yang login setelah pukul <b>'+esc(D.cfg.jam)+'</b> mengisi alasan keterlambatan. Jam hanya bisa diubah admin atau Waka Siswa.</p>')+'</div>';
   var body=list.length?'<div class="scroll"><table><thead><tr><th>Siswa</th><th>Masuk</th><th>Terlambat</th><th>Alasan</th><th>Status</th></tr></thead><tbody>'+list.map(function(x){var s=byId(x.sid),t=stat(x.status);
-    var act=x.status==='menunggu'?(ok?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" data-a="lsetuju" data-id="'+esc(x.id)+'">Setujui</button><button class="btn bad sm" data-a="ltolak" data-id="'+esc(x.id)+'">Tolak</button></div>':''):'<div class="muted" style="font-size:13px;margin-top:4px">oleh '+esc(x.oleh||'-')+'</div>';
+    var act=x.status==='menunggu'?(ok?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" data-a="lsetuju" data-id="'+esc(x.id)+'">Setujui</button><button class="btn bad sm" data-a="ltolak" data-id="'+esc(x.id)+'">Tolak</button></div>':''):'<div class="muted" style="font-size:13px;margin-top:4px">oleh '+esc(x.oleh||'-')+(x.ubah?' (diubah '+esc(x.ubah)+')':'')+'</div>'+(adm?'<div style="margin-top:8px"><button class="btn ghost sm" data-a="lubah" data-id="'+esc(x.id)+'">'+(x.status==='disetujui'?'Ubah jadi ditolak':'Ubah jadi diterima')+'</button></div>':'');
     return '<tr><td>'+esc(s?s.nama:'Siswa dihapus')+'<div class="muted" style="font-size:13px">'+esc(s?s.kelas:'')+'</div></td><td style="white-space:nowrap">'+fmt(x.tgl)+'<div class="muted" style="font-size:13px">'+esc(x.waktu)+'</div></td><td style="white-space:nowrap">'+fmtMenit(x.menit)+'</td><td>'+esc(x.alasan)+'</td><td><span class="pt '+t[1]+'">'+t[0]+'</span>'+act+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="empty">Belum ada laporan keterlambatan. Laporan muncul di sini saat siswa mengisinya.</p>';
-  return '<div class="stack-cards">'+cfg+'<div class="card"><div class="h"><h3>Laporan keterlambatan siswa</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">'+(ok?'Setujui alasan yang masuk akal. Alasan yang ditolak menambah 5 poin pelanggaran. Kehadiran siswa otomatis tercatat hadir.':'Persetujuan dilakukan guru piket yang bertugas hari ini ('+(on.length?on.join(', '):'belum ada jadwal')+') atau admin. Kamu melihat laporan siswa dalam lingkup kelasmu.')+'</p>'+body+'</div></div>'}
+  return '<div class="stack-cards">'+cfg+'<div class="card"><div class="h"><h3>Laporan keterlambatan siswa</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">'+(ok?'Setujui alasan yang masuk akal. Alasan yang ditolak menambah 5 poin pelanggaran. Kehadiran siswa otomatis tercatat hadir.'+(adm?' Jika keputusan keliru, ubah dengan tombol di kolom status; poin 5 akan ditambahkan atau dicabut otomatis.':' Jika salah klik, minta admin atau Waka Siswa mengubahnya.'):'Persetujuan dilakukan guru piket yang bertugas hari ini ('+(on.length?on.join(', '):'belum ada jadwal')+') atau admin. Kamu melihat laporan siswa dalam lingkup kelasmu.')+'</p>'+body+'</div></div>'}
 function parseDelim(t){
   var L=t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()});if(!L.length)return [];
   var f=L[0],d=[['\t',f.split('\t').length],[';',f.split(';').length],[',',f.split(',').length]].sort(function(a,b){return b[1]-a[1]})[0][0];
@@ -351,32 +347,34 @@ function tImpor(){
   return '<div class="stack-cards">'+up+pv+'</div>'}
 function tAkun(){
   if(!can(S.user,'akun'))return '<div class="card"><div class="h"><h3>Kelola akun</h3></div><p class="empty">Akun staf hanya dibuat dan diatur oleh admin utama.</p></div>';
-  var R=['Wali kelas','Guru piket','Guru mapel','Guru BK','Waka Siswa','Kepala madrasah','Admin'];
+  var R=['Wali kelas','Guru piket','Guru BK','Waka Siswa','Kepala madrasah','Admin'];
   return '<div class="two"><div class="card"><div class="h"><h3>Buat akun staf</h3></div><form class="stack" data-f="acc"><label>Nama lengkap<input name="nama" placeholder="Nama beserta gelar"></label><label>Username<input name="user" placeholder="wali.xia"></label><label>Peran<select name="role">'+R.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></label><label>Kata sandi awal<input name="pass" placeholder="Minimal 6 karakter"></label>'+
   (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+(S.flash?'<p class="ok">'+esc(S.flash)+'</p>':'')+'<button class="btn" type="submit">Buat akun</button></form></div>'+
   '<div class="card"><div class="h"><h3>Akun staf</h3></div><div class="scroll"><table><thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th></th></tr></thead><tbody>'+
   D.staff.map(function(s){return '<tr><td>'+esc(s.nama)+'</td><td style="font-family:var(--mono)">'+esc(s.user)+'</td><td class="muted">'+esc(s.role)+'</td><td>'+(s.id===S.user.id?'<span class="muted">Akunmu</span>':'<button class="x" data-a="delacc" data-id="'+esc(s.id)+'">Hapus</button>')+'</td></tr>'}).join('')+'</tbody></table></div></div></div>'}
 function lockedSiswa(){return '<div class="card"><div class="h"><h3>Kelola siswa</h3></div><p class="empty">Menambah dan menghapus data siswa hanya bisa dilakukan admin.</p></div>'}
 function tAkses(){
-  var cols=['Siswa','Guru mapel','Wali kelas','Guru piket','Guru BK','Waka Siswa','Kepala madrasah','Admin'],own={'Guru mapel':1,'Wali kelas':2,'Guru piket':3,'Guru BK':4,'Waka Siswa':5,'Kepala madrasah':6,'Admin':7}[S.user.role];
-  var K=['Kelas yang diajar','Kelas perwalian','Kelas tugas piket','Semua kelas','Semua kelas'];
-  var rows=[['Melihat poin, riwayat, dan kehadiran milik sendiri',['Ya','-','-','-','-','-','-','-']],
-   ['Melihat data dan peringkat siswa',['Tidak'].concat(K,['Semua kelas','Semua kelas'])],
-   ['Mencatat penghargaan',['Tidak'].concat(K,['Tidak','Semua kelas'])],
+  var cols=['Siswa','Wali kelas','Guru piket','Guru BK','Waka Siswa','Kepala madrasah','Admin'],own={'Wali kelas':1,'Guru piket':2,'Guru BK':3,'Waka Siswa':4,'Kepala madrasah':5,'Admin':6}[S.user.role];
+  var K=['Kelas perwalian','Kelas tugas piket','Semua kelas','Semua kelas'],SP='Saat piket, kelas tugas';
+  var rows=[['Melihat poin, kehadiran, dan riwayat pulang cepat milik sendiri',['Ya','-','-','-','-','-','-']],
+   ['Melihat poin, keterlambatan, dan pulang cepat siswa',['Tidak'].concat(K,['Semua kelas','Semua kelas'])],
+   ['Mencatat penghargaan',['Tidak','Tidak','Tidak','Tidak','Semua kelas','Tidak','Semua kelas']],
    ['Mencatat pelanggaran ringan (maksimal 10 poin)',['Tidak'].concat(K,['Tidak','Semua kelas'])],
-   ['Mencatat pelanggaran berat (di atas 10 poin)',['Tidak','Tidak','Tidak','Tidak','Semua kelas','Semua kelas','Tidak','Semua kelas']],
-   ['Mengisi kehadiran harian',['Tidak','Tidak','Tidak','Saat piket, kelas tugas','Tidak','Tidak','Tidak','Semua kelas']],
-   ['Melaporkan keterlambatan sendiri (memilih alasan)',['Ya','-','-','-','-','-','-','-']],
-   ['Menyetujui atau menolak alasan keterlambatan',['Tidak','Tidak','Tidak','Saat piket, kelas tugas','Tidak','Tidak','Tidak','Semua kelas']],
-   ['Mengatur jadwal piket dan lingkup kelas guru',['Tidak','Tidak','Tidak','Tidak','Tidak','Ya','Tidak','Ya']],
-   ['Menambah dan menghapus data siswa',['Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Ya']],
-   ['Membuat akun staf dan menentukan perannya',['Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Ya']]];
+   ['Mencatat pelanggaran berat (di atas 10 poin)',['Tidak','Tidak','Tidak','Semua kelas','Semua kelas','Tidak','Semua kelas']],
+   ['Mengisi kehadiran harian',['Tidak','Tidak',SP,'Tidak','Tidak','Tidak','Semua kelas']],
+   ['Mencatat siswa pulang cepat',['Tidak','Tidak',SP,'Tidak','Tidak','Tidak','Semua kelas']],
+   ['Melaporkan keterlambatan sendiri (memilih alasan)',['Ya','-','-','-','-','-','-']],
+   ['Menyetujui atau menolak alasan keterlambatan',['Tidak','Tidak',SP,'Tidak','Tidak','Tidak','Semua kelas']],
+   ['Mengubah keputusan yang sudah diambil guru piket',['Tidak','Tidak','Tidak','Tidak','Ya','Tidak','Ya']],
+   ['Mengatur jadwal piket dan lingkup kelas guru',['Tidak','Tidak','Tidak','Tidak','Ya','Tidak','Ya']],
+   ['Menambah dan menghapus data siswa',['Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Ya']],
+   ['Membuat akun staf dan menentukan perannya',['Tidak','Tidak','Tidak','Tidak','Tidak','Tidak','Ya']]];
   var cell=function(v,i){var c=(v==='Tidak'||v==='-')?'var(--muted)':v.indexOf('Saat')===0?'var(--gold)':'var(--good)';return '<td style="color:'+c+';font-weight:600'+(i===own?';background:var(--green-soft)':'')+'">'+v+'</td>'};
   var adm=can(S.user,'jadwal'),pk=D.staff.filter(function(s){return s.role==='Guru piket'}),on=pk.filter(isPiket).map(function(s){return esc(s.nama)});
   var scp=D.staff.filter(function(s){return !allScope(s)}),kl=kelasList();
   var chk=function(attr,checked){return '<input type="checkbox" style="width:auto" '+attr+(checked?' checked':'')+(adm?'':' disabled')+'>'};
   var lab='flex-direction:row;align-items:center;gap:5px;font-weight:400;color:var(--ink)';
-  return '<div class="stack-cards"><div class="card"><div class="h"><h3>Hak akses per peran</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Kolom perananmu ('+esc(S.user.role)+') diberi warna. Guru BK, Waka Siswa, kepala madrasah, dan admin bisa melihat semua kelas. Guru lain hanya bisa mengakses siswa di kelas dalam lingkupnya: kelas yang diajar, kelas perwalian, atau kelas tugas piket. Kehadiran harian hanya diisi guru piket pada hari tugasnya.</p><div class="scroll"><table><thead><tr><th>Kemampuan</th>'+cols.map(function(c,i){return '<th'+(i===own?' style="background:var(--green-soft)"':'')+'>'+c+'</th>'}).join('')+'</tr></thead><tbody>'+
+  return '<div class="stack-cards"><div class="card"><div class="h"><h3>Hak akses per peran</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Kolom perananmu ('+esc(S.user.role)+') diberi warna. Guru BK, Waka Siswa, kepala madrasah, dan admin bisa melihat semua kelas. Wali kelas dan guru piket hanya bisa mengakses siswa di kelas dalam lingkupnya: kelas perwalian atau kelas tugas piket. Kehadiran harian hanya diisi guru piket pada hari tugasnya.</p><div class="scroll"><table><thead><tr><th>Kemampuan</th>'+cols.map(function(c,i){return '<th'+(i===own?' style="background:var(--green-soft)"':'')+'>'+c+'</th>'}).join('')+'</tr></thead><tbody>'+
   rows.map(function(r){return '<tr><td>'+r[0]+'</td>'+r[1].map(cell).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
   '<div class="card"><div class="h"><h3>Lingkup kelas per guru</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">'+(adm?'Centang kelas yang boleh diakses setiap guru.':'Lingkup kelas hanya bisa diubah admin atau Waka Siswa.')+'</p>'+
   (scp.length?scp.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span><span class="muted" style="font-weight:400">'+esc(s.role)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+kl.map(function(k){return '<label style="'+lab+'">'+chk('data-a="kl" data-id="'+esc(s.id)+'" data-k="'+esc(k)+'"',(s.kelas||[]).indexOf(k)>-1)+esc(k)+'</label>'}).join('')+'</div></div>'}).join(''):'<p class="empty">Belum ada guru dengan lingkup kelas.</p>')+'</div>'+
@@ -399,17 +397,17 @@ function tAksesOld(){
   rows.map(function(r){return '<tr><td>'+r[0]+'</td>'+r[1].map(cell).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
   '<div class="card"><div class="h"><h3>Jadwal guru piket</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Bertugas hari ini: '+(on.length?on.join(', '):'belum ada')+'. '+(adm?'Centang hari tugas untuk mengubah jadwal.':'Jadwal hanya bisa diubah admin.')+'</p>'+
   (pk.length?pk.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+[1,2,3,4,5,6].map(function(d){return '<label style="flex-direction:row;align-items:center;gap:5px;font-weight:400;color:var(--ink)"><input type="checkbox" style="width:auto" data-a="pk" data-id="'+esc(s.id)+'" data-d="'+d+'"'+((s.piket||[]).indexOf(d)>-1?' checked':'')+(adm?'':' disabled')+'>'+DAYS[d]+'</label>'}).join('')+'</div></div>'}).join(''):'<p class="empty">Belum ada guru piket.</p>')+'</div></div>'}
-function aksesSiswa(){return '<div class="card"><div class="h"><h3>Hak akses akunmu</h3></div><div class="two"><div><b>Bisa</b><div class="rec">Melihat poin pelanggaran dan penghargaanmu</div><div class="rec">Membaca riwayat catatan tentang dirimu</div><div class="rec">Melihat rekap kehadiranmu</div><div class="rec">Melihat posisi peringkat kelasmu</div><div class="rec">Melaporkan keterlambatanmu hari ini dengan memilih alasan</div></div><div><b>Tidak bisa</b><div class="rec">Mengubah atau menghapus catatan</div><div class="rec">Melihat nama, poin, atau data siswa lain</div><div class="rec">Mengisi atau mengubah kehadiran sendiri</div><div class="rec">Keberatan dengan catatan? Sampaikan ke guru BK.</div></div></div></div>'}
+function aksesSiswa(){return '<div class="card"><div class="h"><h3>Hak akses akunmu</h3></div><div class="two"><div><b>Bisa</b><div class="rec">Melihat poin pelanggaran dan penghargaanmu</div><div class="rec">Membaca riwayat catatan tentang dirimu</div><div class="rec">Melihat rekap kehadiran dan riwayat pulang cepatmu</div><div class="rec">Melihat posisi peringkat kelasmu</div><div class="rec">Melaporkan keterlambatanmu hari ini dengan memilih alasan</div></div><div><b>Tidak bisa</b><div class="rec">Mengubah atau menghapus catatan</div><div class="rec">Melihat nama, poin, atau data siswa lain</div><div class="rec">Mengisi atau mengubah kehadiran sendiri</div><div class="rec">Keberatan dengan catatan? Sampaikan ke guru BK.</div></div></div></div>'}
 
 function brand(sub){return '<div class="brand"><div class="mark">SIKAP</div><div class="sub">Sistem Informasi Kedisiplinan dan Apresiasi Siswa, MAN Balikpapan</div>'+(sub?'<div class="sub" style="color:var(--ink);font-weight:600">'+sub+'</div>':'')+'</div>'}
 
 function vPortal(){
-  var nr=D.records.filter(function(r){return r.type==='reward'}).length;
+  var nr=D.late.length;
   return '<div class="nav-top"><div class="logo">S</div><div><div style="font-family:var(--display);font-weight:700;letter-spacing:.14em;color:var(--green)">SIKAP</div><div class="muted" style="font-size:13px">MAN Balikpapan</div></div></div>'+
-  '<div class="hero"><div><h1>Disiplin dicatat, <em>prestasi dihargai</em>.</h1><p class="lead">Satu tempat bagi siswa, guru, dan kesiswaan untuk memantau poin pelanggaran, penghargaan, dan kehadiran.</p><div style="margin-top:20px">'+scene()+'</div></div>'+
-  '<div class="gates2"><button class="gate" data-a="go" data-v="ls"><span class="tag">Siswa</span><h2>Portal siswa</h2><p>Lihat poin, peringkat kelas, riwayat, dan kehadiranmu.</p></button>'+
-  '<button class="gate alt" data-a="go" data-v="lg"><span class="tag">Guru dan admin</span><h2>Portal guru dan admin</h2><p>Catat poin, isi absensi, kelola data siswa.</p></button></div></div>'+
-  '<div class="stats"><div><b>'+D.students.length+'</b><span>Siswa terdaftar</span></div><div><b>'+D.records.length+'</b><span>Catatan pelanggaran dan penghargaan</span></div><div><b>'+nr+'</b><span>Penghargaan tercatat</span></div></div>'+
+  '<div class="hero"><div><h1>Kehadiran dan kedisiplinan, <em>tercatat rapi</em>.</h1><p class="lead">Satu tempat bagi siswa, guru, dan kesiswaan untuk memantau kehadiran, keterlambatan, pulang cepat, dan pelanggaran tata tertib.</p><div style="margin-top:20px">'+scene()+'</div></div>'+
+  '<div class="gates2"><button class="gate" data-a="go" data-v="ls"><span class="tag">Siswa</span><h2>Portal siswa</h2><p>Lihat poin pelanggaran, kehadiran, dan riwayat pulang cepatmu.</p></button>'+
+  '<button class="gate alt" data-a="go" data-v="lg"><span class="tag">Guru dan admin</span><h2>Portal guru dan admin</h2><p>Catat pelanggaran, absensi, keterlambatan, dan pulang cepat.</p></button></div></div>'+
+  '<div class="stats"><div><b>'+D.students.length+'</b><span>Siswa terdaftar</span></div><div><b>'+D.records.length+'</b><span>Catatan pelanggaran dan penghargaan</span></div><div><b>'+nr+'</b><span>Keterlambatan dilaporkan</span></div></div>'+
   '<p class="foot">Prototipe fungsional. Data disimpan di perangkat ini.</p><p class="foot" style="margin-top:6px"><button class="back" data-a="go" data-v="hp">Lihat simulasi aplikasi siswa di HP</button></p>'}
 function vPortalOld(){return brand()+'<div class="gates"><button class="gate" data-a="go" data-v="ls"><span class="tag">Siswa</span><h2>Portal siswa</h2><p>Lihat poin, riwayat catatan, peringkat kelas, dan kehadiranmu.</p></button><button class="gate" data-a="go" data-v="lg"><span class="tag">Guru dan admin</span><h2>Portal guru dan admin</h2><p>Catat pelanggaran dan penghargaan, isi absensi, kelola data siswa.</p></button></div><p class="foot">Prototipe fungsional. Data disimpan di perangkat ini.</p>'}
 
@@ -426,6 +424,7 @@ function top(title,who){return '<div class="appbar"><div><h1>'+title+'</h1><div 
 function greet(s){var p=pel(s.id),st=p<10?['good','Disiplin baik']:p<30?['bad','Perlu perhatian']:['bad','Perlu pembinaan'];return '<div class="greet"><h2>Halo, '+esc(s.nama.split(' ')[0])+'</h2><span class="pt '+st[0]+'">'+st[1]+'</span></div>'}
 function sealH(v,l,c,cs){return '<div class="card seal" style="--c:'+c+';--cs:'+cs+'"><div class="ring"><span>'+esc(v)+'</span></div><small>'+l+'</small></div>'}
 
+function pulangS(s){var l=D.pulang.filter(function(x){return x.sid===s.id}).sort(function(a,b){return (b.tgl+b.waktu).localeCompare(a.tgl+a.waktu)}).slice(0,5);return '<div class="card"><div class="h"><h3>Riwayat pulang cepat</h3></div>'+(l.length?'<div class="scroll"><table><thead><tr><th>Tanggal</th><th>Jam</th><th>Alasan</th></tr></thead><tbody>'+l.map(function(x){return '<tr><td style="white-space:nowrap">'+fmt(x.tgl)+'</td><td>'+esc(x.waktu)+'</td><td>'+esc(x.alasan)+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="empty">Belum ada catatan pulang cepat.</p>')+'</div>'}
 function vSiswa(){
   var s=S.user,recs=D.records.filter(function(r){return r.sid===s.id}).sort(function(a,b){return b.tgl.localeCompare(a.tgl)});
   var att=D.att.filter(function(a){return a.sid===s.id}).sort(function(a,b){return b.tgl.localeCompare(a.tgl)});
@@ -436,17 +435,54 @@ function vSiswa(){
    '<div class="card"><div class="h"><h3>Rekap kehadiran</h3></div><div class="att"><div><b style="color:var(--good)">'+c.hadir+'</b><span>Hadir</span></div><div><b style="color:var(--gold)">'+c.sakit+'</b><span>Sakit</span></div><div><b style="color:var(--blue)">'+c.izin+'</b><span>Izin</span></div><div><b style="color:var(--bad)">'+c.alpa+'</b><span>Alpa</span></div></div>'+
    '<div class="scroll"><table><thead><tr><th>Tanggal</th><th>Status</th></tr></thead><tbody>'+(att.length?att.slice(0,8).map(function(a){return '<tr><td>'+fmt(a.tgl)+'</td><td style="text-transform:capitalize">'+a.st+'</td></tr>'}).join(''):'<tr><td colspan="2" class="muted">Belum ada data kehadiran.</td></tr>')+'</tbody></table></div></div>'+
    '<div class="card"><div class="h"><h3>Riwayat pelanggaran dan penghargaan</h3></div><div class="scroll"><table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Poin</th><th>Catatan</th></tr></thead><tbody>'+
-   (recs.length?recs.map(function(r){return '<tr><td style="white-space:nowrap">'+fmt(r.tgl)+'</td><td>'+esc(r.kat)+'</td><td><span class="pt '+(r.type==='reward'?'good':'bad')+'">'+(r.type==='reward'?'+':'-')+r.poin+'</span></td><td class="muted">'+esc(r.cat)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Belum ada catatan. Pertahankan.</td></tr>')+'</tbody></table></div></div>'+aksesSiswa()+'</div>'}
+   (recs.length?recs.map(function(r){return '<tr><td style="white-space:nowrap">'+fmt(r.tgl)+'</td><td>'+esc(r.kat)+'</td><td><span class="pt '+(r.type==='reward'?'good':'bad')+'">'+(r.type==='reward'?'+':'-')+r.poin+'</span></td><td class="muted">'+esc(r.cat)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Belum ada catatan. Pertahankan.</td></tr>')+'</tbody></table></div></div>'+pulangS(s)+aksesSiswa()+'</div>'}
 
 function opts(list){list=scoped(S.user);return list.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.nama)+' ('+esc(s.kelas)+')</option>'}).join('')}
 
+function cardH(t,h,x){return '<div class="card"><div class="h" style="justify-content:space-between;flex-wrap:wrap"><h3>'+t+'</h3>'+(x||'')+'</div>'+h+'</div>'}
+function tiles(a){return '<div class="att" style="margin:0">'+a.map(function(x){return '<div><b style="color:'+x[2]+'">'+x[0]+'</b><span>'+x[1]+'</span></div>'}).join('')+'</div>'}
+function tbl(head,rows,empty){return '<div class="scroll"><table><thead><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr></thead><tbody>'+(rows.length?rows.join(''):'<tr><td colspan="'+head.length+'" class="muted">'+empty+'</td></tr>')+'</tbody></table></div>'}
+function perKelasT(sc){var m={};sc.forEach(function(x){var k=m[x.kelas]=m[x.kelas]||{n:0,p:0,g:0,t:0,c:0};k.n++;k.p+=pel(x.id);k.g+=pgh(x.id);k.t+=D.late.filter(function(l){return l.sid===x.id}).length;k.c+=D.pulang.filter(function(l){return l.sid===x.id}).length});
+  return tbl(['Kelas','Siswa','Pelanggaran','Penghargaan','Terlambat','Pulang cepat'],Object.keys(m).sort().map(function(k){var v=m[k];return '<tr><td>'+esc(k)+'</td><td>'+v.n+'</td><td><span class="pt bad">'+v.p+'</span></td><td><span class="pt good">'+v.g+'</span></td><td>'+v.t+'</td><td>'+v.c+'</td></tr>'}),'Belum ada siswa.')}
+function eventsT(ids){var e=[];D.late.forEach(function(x){if(ids[x.sid])e.push({t:x.tgl,w:x.waktu,sid:x.sid,j:'Terlambat '+fmtMenit(x.menit),k:stat(x.status)[0]})});D.pulang.forEach(function(x){if(ids[x.sid])e.push({t:x.tgl,w:x.waktu,sid:x.sid,j:'Pulang cepat',k:x.alasan})});e.sort(function(a,b){return (b.t+b.w).localeCompare(a.t+a.w)});
+  return tbl(['Tanggal','Siswa','Jenis','Keterangan'],e.slice(0,8).map(function(x){var s2=byId(x.sid);return '<tr><td style="white-space:nowrap">'+fmt(x.t)+' '+esc(x.w)+'</td><td>'+esc(s2?s2.nama:'-')+'</td><td>'+esc(x.j)+'</td><td class="muted">'+esc(x.k)+'</td></tr>'}),'Belum ada catatan.')}
+function perhatianT(sc){var l=sc.map(function(x){return {s:x,p:pel(x.id)}}).filter(function(x){return x.p>=10}).sort(function(a,b){return b.p-a.p}).slice(0,8);
+  return tbl(['Nama','Kelas','Pelanggaran','Status'],l.map(function(r){return '<tr><td>'+esc(r.s.nama)+'</td><td class="muted">'+esc(r.s.kelas)+'</td><td><span class="pt bad">'+r.p+'</span></td><td class="muted">'+(r.p>=30?'Perlu pembinaan':'Perlu perhatian')+'</td></tr>'}),'Tidak ada siswa yang perlu perhatian.')}
+function rankT(sc){var rows=sc.map(function(x){return {s:x,p:pel(x.id),g:pgh(x.id)}}).sort(function(a,b){return a.p-b.p});
+  return tbl(['#','Nama','Kelas','Pelanggaran','Penghargaan'],rows.map(function(r,i){return '<tr><td style="font-family:var(--mono)">'+(i+1)+'</td><td>'+esc(r.s.nama)+'</td><td class="muted">'+esc(r.s.kelas)+'</td><td><span class="pt bad">'+r.p+'</span></td><td><span class="pt good">'+r.g+'</span></td></tr>'}),'Belum ada siswa dalam lingkupmu. Admin dapat mengatur lingkup kelas di tab Hak akses.')}
 function tRingkasan(){
-  var rows=scoped(S.user).map(function(s){return {s:s,p:pel(s.id),g:pgh(s.id)}}).sort(function(a,b){return a.p-b.p});
-  return '<div class="card"><div class="h" style="justify-content:space-between;flex-wrap:wrap"><h3>Peringkat kedisiplinan '+(allScope(S.user)?'seluruh siswa':'siswa kelas '+esc((S.user.kelas||[]).join(', ')||'-'))+'</h3>'+(can(S.user,'reset')?'<button class="btn ghost sm" data-a="reset">Kembalikan data contoh</button>':'')+'</div><div class="scroll"><table><thead><tr><th>#</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Penghargaan</th></tr></thead><tbody>'+
-  (rows.length?rows.map(function(r,i){return '<tr><td style="font-family:var(--mono)">'+(i+1)+'</td><td>'+esc(r.s.nama)+'</td><td class="muted">'+esc(r.s.kelas)+'</td><td><span class="pt bad">'+r.p+'</span></td><td><span class="pt good">'+r.g+'</span></td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Belum ada siswa dalam lingkupmu. Admin dapat mengatur lingkup kelas di tab Hak akses.</td></tr>')+'</tbody></table></div></div>'}
+  var u=S.user,r=u.role,sc=scoped(u),tg=today(),ids={};sc.forEach(function(x){ids[x.id]=1});
+  var tp=0;sc.forEach(function(x){tp+=pel(x.id)});var lt=D.late.filter(function(x){return x.tgl===tg&&ids[x.sid]}).length,pc=D.pulang.filter(function(x){return x.tgl===tg&&ids[x.sid]}).length;
+  var pend=D.late.filter(function(x){return x.status==='menunggu'&&ids[x.sid]}).length;
+  var hadir=D.att.filter(function(a){return a.tgl===tg&&ids[a.sid]&&a.st==='hadir'}).length,tercatat=D.att.filter(function(a){return a.tgl===tg&&ids[a.sid]}).length;
+  var go2=pend?'<button class="btn sm" data-a="tab" data-t="telat">Tinjau '+pend+' laporan</button>':'';
+  var on=D.staff.filter(function(x){return x.role==='Guru piket'&&isPiket(x)}).map(function(x){return esc(x.nama)}).join(', ')||'belum ada jadwal';
+  var note={'Admin':'Ringkasan pengelolaan sistem dan seluruh siswa.','Kepala madrasah':'Gambaran kedisiplinan seluruh madrasah. Peranmu hanya melihat data.','Waka Siswa':'Pantau kedisiplinan seluruh kelas dan siswa yang perlu tindak lanjut.','Guru BK':'Fokus pada siswa yang perlu pembinaan dan pelanggaran berat.','Guru piket':'Tugas piket hari ini: kehadiran dan laporan keterlambatan.','Wali kelas':'Kondisi kelas perwalianmu: kehadiran, keterlambatan, pulang cepat, dan pelanggaran.'}[r]||'';
+  var t4=r==='Guru piket'?[[hadir,'Hadir hari ini','var(--good)'],[Math.max(sc.length-tercatat,0),'Belum tercatat','var(--bad)'],[pend,'Laporan menunggu','var(--gold)'],[pc,'Pulang cepat hari ini','var(--blue)']]:[[sc.length,'Siswa','var(--blue)'],[tp,'Poin pelanggaran','var(--bad)'],[lt,'Terlambat hari ini','var(--gold)'],[pc,'Pulang cepat hari ini','var(--blue)']];
+  var out='<p class="muted" style="margin:0 0 12px;font-size:14.5px">'+note+'</p>'+cardH('Ringkasan',tiles(t4),go2);
+  var cl=function(x){return '<div style="height:14px"></div>'+x};
+  if(r==='Admin'){out+=cl(cardH('Status sistem','<p style="margin:0 0 6px"><b>Akun staf:</b> '+D.staff.length+' &middot; <b>Batas jam masuk:</b> '+esc(D.cfg.jam)+'</p><p style="margin:0"><b>Piket hari ini:</b> '+on+'</p>'))+cl(cardH('Peringkat kedisiplinan seluruh siswa',rankT(sc),can(u,'reset')?'<button class="btn ghost sm" data-a="reset">Kembalikan data contoh</button>':''))}
+  else if(r==='Kepala madrasah'){out+=cl(cardH('Rekap per kelas',perKelasT(sc)))+cl(cardH('Keterlambatan dan pulang cepat terbaru',eventsT(ids)))+cl(cardH('Siswa yang perlu perhatian',perhatianT(sc)))}
+  else if(r==='Waka Siswa'){out+=cl(cardH('Rekap per kelas',perKelasT(sc)))+cl(cardH('Keterlambatan dan pulang cepat terbaru',eventsT(ids)))+cl(cardH('Siswa yang perlu tindak lanjut',perhatianT(sc)))}
+  else if(r==='Guru BK'){var hv=D.records.filter(function(x){return x.type==='pelanggaran'&&x.poin>10&&ids[x.sid]}).sort(function(a,b){return b.tgl.localeCompare(a.tgl)}).slice(0,6);
+    out+=cl(cardH('Siswa yang perlu pembinaan',perhatianT(sc)))+cl(cardH('Pelanggaran berat terbaru',tbl(['Tanggal','Siswa','Kategori','Poin'],hv.map(function(x){var s2=byId(x.sid);return '<tr><td style="white-space:nowrap">'+fmt(x.tgl)+'</td><td>'+esc(s2?s2.nama:'-')+'</td><td class="muted">'+esc(x.kat)+'</td><td><span class="pt bad">'+x.poin+'</span></td></tr>'}),'Belum ada pelanggaran berat.')))}
+  else if(r==='Guru piket'){var belum=sc.filter(function(x){return !D.att.some(function(a){return a.sid===x.id&&a.tgl===tg})}).slice(0,10);
+    out+=cl(cardH('Status piket',isPiket(u)?'<p style="margin:0"><span class="pt good">Kamu bertugas hari ini</span></p><p class="muted" style="margin:8px 0 0;font-size:14px">Kamu dapat mengisi kehadiran dan menyetujui laporan keterlambatan.</p>':'<p style="margin:0"><span class="pt wait">Bukan hari piketmu</span></p><p class="muted" style="margin:8px 0 0;font-size:14px">Piket hari ini: '+on+'. Kehadiran dan persetujuan hanya bisa dilakukan pada hari tugasmu.</p>'))+cl(cardH('Belum tercatat hadir hari ini',tbl(['Nama','Kelas'],belum.map(function(x){return '<tr><td>'+esc(x.nama)+'</td><td class="muted">'+esc(x.kelas)+'</td></tr>'}),'Semua siswa di kelas tugasmu sudah tercatat.')))}
+  else if(r==='Wali kelas'){var c={hadir:0,sakit:0,izin:0,alpa:0};D.att.filter(function(a){return ids[a.sid]}).forEach(function(a){c[a.st]++});
+    out+=cl(cardH('Rekap kehadiran kelas',tiles([[c.hadir,'Hadir','var(--good)'],[c.sakit,'Sakit','var(--gold)'],[c.izin,'Izin','var(--blue)'],[c.alpa,'Alpa','var(--bad)']])))+cl(cardH('Keterlambatan dan pulang cepat terbaru',eventsT(ids)))+cl(cardH('Siswa yang perlu perhatian',perhatianT(sc)))+cl(cardH('Peringkat kedisiplinan kelas',rankT(sc)))}
+  else{out+=cl(cardH('Rekap per kelas yang kamu ajar',perKelasT(sc)))+cl(cardH('Siswa yang perlu perhatian',perhatianT(sc)))}
+  return out}
 
+var ALASAN_P=['Sakit atau kondisi kesehatan','Dijemput orang tua atau wali','Keperluan keluarga mendesak','Mengikuti kegiatan atau lomba di luar madrasah','Berobat atau kontrol ke dokter','Alasan lain (dicatat di keterangan)'];
+function tPulang(){
+  var ok=can(S.user,'pulang'),l=D.pulang.filter(function(x){return visible(x.sid)}).sort(function(a,b){return (b.tgl+b.waktu).localeCompare(a.tgl+a.waktu)}).slice(0,15),now=new Date();
+  var tb=tbl(['Siswa','Waktu','Alasan','Dicatat oleh'],l.map(function(x){var s2=byId(x.sid);return '<tr><td>'+esc(s2?s2.nama:'Siswa dihapus')+'<div class="muted" style="font-size:13px">'+esc(s2?s2.kelas:'')+'</div></td><td style="white-space:nowrap">'+fmt(x.tgl)+'<div class="muted" style="font-size:13px">'+esc(x.waktu)+'</div></td><td>'+esc(x.alasan)+(x.cat?'<div class="muted" style="font-size:13px">'+esc(x.cat)+'</div>':'')+'</td><td class="muted">'+esc(x.oleh||'-')+'</td></tr>'}),'Belum ada catatan pulang cepat.');
+  var f=ok?'<div class="card"><div class="h"><h3>Catat pulang cepat</h3></div><form class="stack" data-f="pulang"><label>Siswa<select name="sid">'+opts(D.students)+'</select></label><label>Alasan<select name="alasan">'+ALASAN_P.map(function(a){return '<option>'+esc(a)+'</option>'}).join('')+'</select></label><label>Jam keluar<input name="waktu" type="time" value="'+hm(now)+'"></label><label>Tanggal<input name="tgl" type="date" value="'+today()+'"></label><label>Keterangan (opsional)<textarea name="cat" placeholder="Contoh: dijemput ayah pukul 10.30"></textarea></label>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+(S.flash?'<p class="ok">'+esc(S.flash)+'</p>':'')+'<button class="btn" type="submit">Simpan</button></form></div>'
+   :'<div class="card"><div class="h"><h3>Catat pulang cepat</h3></div><p class="empty">Pencatatan pulang cepat dilakukan guru piket pada hari tugasnya, atau oleh admin.</p></div>';
+  return '<div class="two">'+f+'<div class="card"><div class="h"><h3>Riwayat pulang cepat</h3></div>'+tb+'</div></div>'}
 function tRecord(type){
   if(!can(S.user,'catat'))return lockedCatat();
+  if(type==='reward'&&!can(S.user,'reward'))return '<div class="card"><div class="h"><h3>Input penghargaan</h3></div><p class="empty">Penghargaan hanya dicatat oleh Waka Siswa atau admin.</p></div>';
   var isP=type==='pelanggaran',recent=D.records.filter(function(r){return r.type===type&&visible(r.sid)}).sort(function(a,b){return b.tgl.localeCompare(a.tgl)}).slice(0,6);
   return '<div class="two"><div class="card"><div class="h"><h3>'+(isP?'Catat pelanggaran':'Catat penghargaan')+'</h3></div><form class="stack" data-f="rec" data-type="'+type+'"><label>Siswa<select name="sid">'+opts(D.students)+'</select></label>'+
   '<label>Kategori<select name="kat" data-a="kat">'+katList(type).map(function(x){var k=x[0];return '<option value="'+x[1]+'">'+esc(k[0])+(k[1]?' ('+k[1]+' poin)':'')+'</option>'}).join('')+'</select></label>'+(limit(type)?'<p class="muted" style="margin:0;font-size:13.5px">Guru dapat mencatat pelanggaran ringan (maksimal 10 poin). Pelanggaran berat dicatat Guru BK atau admin.</p>':'')+
@@ -474,8 +510,10 @@ function stList(q){
 
 function vStaff(){
   var pend=D.late.filter(function(x){return x.status==='menunggu'&&visible(x.sid)}).length;
-  var T=[["ringkasan","Ringkasan"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["akun","Kelola akun"],["akses","Hak akses"]];
-  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,akses:tAkses}[S.tab]();
+  var T=[["ringkasan","Ringkasan"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pulang","Pulang cepat"],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["akun","Kelola akun"],["akses","Hak akses"]];
+  var ro=S.user.role,okT={'Admin':null,'Kepala madrasah':['ringkasan','telat','pulang','akses'],'Waka Siswa':['ringkasan','telat','pulang','pelanggaran','reward','akses'],'Guru BK':['ringkasan','telat','pulang','pelanggaran','akses'],'Guru piket':['ringkasan','telat','pulang','pelanggaran','absensi','akses'],'Wali kelas':['ringkasan','telat','pulang','pelanggaran','akses']}[ro];
+  if(okT){T=T.filter(function(t){return okT.indexOf(t[0])>-1});if(okT.indexOf(S.tab)<0)S.tab='ringkasan'}
+  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},pulang:tPulang,reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,akses:tAkses}[S.tab]();
   return top('Portal '+esc(S.user.role.toLowerCase()),esc(S.user.nama)+dutyNote(S.user))+'<div class="layout"><div class="tabs" role="tablist">'+T.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(S.tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div><div style="min-width:0">'+body+'</div></div>'}
 
 function render(){
@@ -497,9 +535,14 @@ $app.addEventListener('click',function(e){
   else if(a==='hpout'){S.hp={step:'login'};render()}
   else if((a==='lsetuju'||a==='ltolak')&&can(S.user,'setuju')){var lr=D.late.find(function(x){return x.id===t.dataset.id});
     if(lr&&lr.status==='menunggu'&&visible(lr.sid)){var nw=new Date();lr.status=a==='lsetuju'?'disetujui':'ditolak';lr.oleh=S.user.nama;lr.putus=dstr(nw)+' '+hm(nw);
-      if(a==='ltolak')D.records.push({id:uid(),sid:lr.sid,type:'pelanggaran',kat:'Terlambat masuk sekolah',poin:5,cat:'Alasan terlambat ditolak guru piket ('+lr.alasan+', '+fmtMenit(lr.menit)+').',tgl:lr.tgl});
+      if(a==='ltolak')D.records.push({id:uid(),sid:lr.sid,type:'pelanggaran',kat:'Terlambat masuk sekolah',poin:5,lid:lr.id,cat:'Alasan terlambat ditolak guru piket ('+lr.alasan+', '+fmtMenit(lr.menit)+').',tgl:lr.tgl});
       if(!D.att.some(function(x){return x.sid===lr.sid&&x.tgl===lr.tgl}))D.att.push({id:uid(),sid:lr.sid,tgl:lr.tgl,st:'hadir'});
       save();render()}}
+  else if(a==='lubah'&&can(S.user,'jadwal')){var lu=D.late.find(function(x){return x.id===t.dataset.id});
+    if(lu&&(lu.status==='disetujui'||lu.status==='ditolak')){var nw3=new Date();
+      if(lu.status==='disetujui'){lu.status='ditolak';D.records.push({id:uid(),sid:lu.sid,type:'pelanggaran',kat:'Terlambat masuk sekolah',poin:5,lid:lu.id,cat:'Alasan terlambat ditolak setelah ditinjau '+S.user.nama+' ('+lu.alasan+', '+fmtMenit(lu.menit)+').',tgl:lu.tgl})}
+      else{lu.status='disetujui';D.records=D.records.filter(function(r){return !(r.lid===lu.id||(!r.lid&&r.sid===lu.sid&&r.tgl===lu.tgl&&r.kat==='Terlambat masuk sekolah'&&r.poin===5&&String(r.cat||'').indexOf('Alasan terlambat ditolak')===0))})}
+      lu.ubah=S.user.nama+', '+dstr(nw3)+' '+hm(nw3);save();render()}}
   else if(a==='jamsave'&&can(S.user,'jadwal')){var jv=document.getElementById('jamin'),jt=jv?jv.value:'';if(!/^\d{2}:\d{2}$/.test(jt)){S.flash='';S.err='Isi jam dengan format jam:menit.';render();return}D.cfg.jam=jt;save();S.err='';S.flash='Batas jam masuk disimpan.';render()}
   else if(a==='impparse'&&can(S.user,'siswa')){var tx=document.getElementById('imptxt'),val=tx?tx.value:'';if(!val.trim()){S.err='Tempel data atau pilih file terlebih dahulu.';S.flash='';render();return}S.err='';S.flash='';S.imp=buildImport(parseDelim(val),'data tempel');render()}
   else if(a==='impgo'&&can(S.user,'siswa')&&S.imp){var add=S.imp.items.filter(function(x){return x.st==='ok'});add.forEach(function(x){D.students.push({id:uid(),nis:x.nis,nama:x.nama,kelas:x.kelas,pass:x.nis})});save();S.imp=null;S.err='';S.flash=add.length+' siswa berhasil diimpor. Sandi awal sama dengan NIS.';render()}
@@ -531,11 +574,19 @@ $app.addEventListener('submit',function(e){
   if(k==='rec'){
     if(!can(S.user,'catat')){S.err='Peranmu hanya bisa melihat data.';render();return}
     var type=f.dataset.type,kat=KAT[type][+v('kat')],poin=kat[1]||+v('poin');
+    if(type==='reward'&&!can(S.user,'reward')){S.err='Penghargaan hanya dicatat Waka Siswa atau admin.';render();return}
     if(!v('sid')){S.err='Pilih siswa terlebih dahulu.'}
     else if(!visible(v('sid'))){S.err='Siswa itu di luar lingkup kelasmu.'}
     else if(limit(type)&&(!kat[1]||kat[1]>10)){S.err='Pelanggaran ini hanya bisa dicatat Guru BK atau admin.'}
     else if(!poin||poin<1){S.err='Isi jumlah poin lebih dari 0.'}
     else{D.records.push({id:uid(),sid:v('sid'),type:type,kat:kat[1]?kat[0]:(v('cat').split('.')[0]||'Lainnya'),poin:poin,cat:v('cat'),tgl:v('tgl')||today()});save();S.flash=type==='reward'?'Penghargaan tercatat.':'Pelanggaran tercatat.'}
+    render();return}
+  if(k==='pulang'){
+    if(!can(S.user,'pulang')){S.err='Pencatatan pulang cepat hanya oleh guru piket yang bertugas atau admin.';render();return}
+    if(!v('sid')||!visible(v('sid'))){S.err='Pilih siswa yang ada di lingkupmu.'}
+    else if(ALASAN_P.indexOf(v('alasan'))<0){S.err='Pilih salah satu alasan.'}
+    else if(!/^\d{2}:\d{2}$/.test(v('waktu'))){S.err='Isi jam keluar.'}
+    else{var tp2=v('tgl')||today();D.pulang.push({id:uid(),sid:v('sid'),tgl:tp2,waktu:v('waktu'),alasan:v('alasan'),cat:v('cat'),oleh:S.user.nama});if(!D.att.some(function(x){return x.sid===v('sid')&&x.tgl===tp2}))D.att.push({id:uid(),sid:v('sid'),tgl:tp2,st:'hadir'});save();S.flash='Pulang cepat tercatat.'}
     render();return}
   if(k==='att'){
     if(!can(S.user,'absen')){S.err='Kamu tidak punya akses mengisi kehadiran saat ini.';render();return}
@@ -580,5 +631,4 @@ $app.addEventListener('submit',function(e){
 render();
 })();
 </script>
-</body>
 </html>
