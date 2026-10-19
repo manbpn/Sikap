@@ -136,6 +136,8 @@ td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
   .tabs{flex-direction:row;position:static}
   .tab{width:auto}
 }
+/* daftar yang bisa digulir dengan scrollbar disembunyikan */
+.hs{max-height:190px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}.hs::-webkit-scrollbar{display:none}.hs thead th{position:sticky;top:0;background:var(--surface,#fff)}
 @media print{.tabs,.appbar,.btn,.rkbar{display:none!important}body{background:#fff}.layout{display:block}}
 </style>
 
@@ -156,7 +158,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function seed(){
   var st=[["s1","24001","Ahmad Fauzan Ramadhan","XI IPA 1"],["s2","24002","Siti Nur Aisyah","XI IPA 1"],["s3","24003","Muhammad Rizky Pratama","XI IPA 1"],["s4","24004","Nabila Putri Anggraini","XI IPS 2"],["s5","24005","Fajar Nugroho","XI IPS 2"],["s6","24006","Khairunnisa Salsabila","XI IPS 2"]]
    .map(function(x){return {id:x[0],nis:x[1],nama:x[2],kelas:x[3],pass:x[1]}});
-  var staff=[{id:"a1",user:"admin",nama:"Admin Kesiswaan",role:"Admin",pass:"admin123"},{id:"g1",user:"guru.bk",nama:"Bapak Hendra Wijaya, S.Pd",role:"Guru BK",pass:"guru123"},{id:"g2",user:"guru.piket",nama:"Ibu Rahmawati, S.Pd",role:"Guru piket",pass:"piket123",piket:[1,4],kelas:["XI IPA 1"]},{id:"g4",user:"wali.ips2",nama:"Ibu Siti Aminah, S.Pd",role:"Wali kelas",pass:"wali123",kelas:["XI IPS 2"]},{id:"g5",user:"waka.siswa",nama:"Bapak Drs. Ahmad Syafii",role:"Waka Siswa",pass:"waka123"},{id:"k1",user:"kepala",nama:"Bapak Dr. H. Mulyadi, M.Pd",role:"Kepala madrasah",pass:"kepala123"}];
+  var staff=[{id:"a1",user:"admin",nama:"Admin Kesiswaan",role:"Admin",pass:"admin123"},{id:"g1",user:"guru.bk",nama:"Bapak Hendra Wijaya, S.Pd",role:"Guru BK",pass:"guru123"},{id:"g2",user:"guru.piket",nama:"Ibu Rahmawati, S.Pd",role:"Guru piket",pass:"piket123",piket:[1,4],kelas:["XI IPA 1"],lokasi:"Gerbang utama dan lobi"},{id:"g6",user:"guru.piket2",nama:"Bapak Andi Saputra, S.Pd",role:"Guru piket",pass:"piket123",piket:[2,5],kelas:["XI IPS 2"],lokasi:"Gedung B dan kantin"},{id:"g4",user:"wali.ips2",nama:"Ibu Siti Aminah, S.Pd",role:"Wali kelas",pass:"wali123",kelas:["XI IPS 2"]},{id:"g5",user:"waka.siswa",nama:"Bapak Drs. Ahmad Syafii",role:"Waka Siswa",pass:"waka123"},{id:"k1",user:"kepala",nama:"Bapak Dr. H. Mulyadi, M.Pd",role:"Kepala madrasah",pass:"kepala123"}];
   var rec=[
    {id:uid(),sid:"s1",type:"pelanggaran",kat:"Terlambat masuk sekolah",poin:5,cat:"Terlambat 15 menit karena macet.",tgl:"2026-10-05"},
    {id:uid(),sid:"s2",type:"reward",kat:"Juara lomba tingkat kota atau provinsi",poin:20,cat:"Juara 2 lomba pidato bahasa Arab tingkat kota.",tgl:"2026-10-07"},
@@ -250,7 +252,7 @@ function vHp(){
   var h=S.hp||{step:'login'},s=h.user,now=new Date(),tg=dstr(now),b='';
   var fp='<svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M20 30a12 12 0 0 1 24 0v8"/><path d="M14 32a18 18 0 0 1 36 0v10"/><path d="M26 30a6 6 0 0 1 12 0v14"/><path d="M32 30v16"/><path d="M26 42v6"/></svg>';
   if(h.step==='login'){
-    b=scene()+'<div style="text-align:center"><h2 style="font-size:20px">Masuk ke SIKAP</h2><div class="muted" style="font-size:13.5px">Gunakan NIS dan kata sandi dari madrasah</div></div><form class="stack" data-f="hplogin" autocomplete="off"><label>NIS<input id="lu" name="u" placeholder="24001"></label><label>Kata sandi<input id="lp" name="p" type="password" placeholder="Kata sandi"></label>'+(h.err?'<p class="err">'+esc(h.err)+'</p>':'')+'<button class="btn" type="submit">Masuk</button></form><div class="demo" style="margin-top:0"><p>Akun contoh. Ketuk untuk mengisi.</p><div class="chips">'+D.students.slice(0,3).map(function(x){return '<button type="button" class="chip" data-a="fill" data-u="'+esc(x.nis)+'" data-p="'+esc(x.pass)+'">'+esc(x.nis)+' / '+esc(x.pass)+'</button>'}).join('')+'</div></div>'}
+    b=scene()+'<div style="text-align:center"><h2 style="font-size:20px">Masuk ke SIKAP</h2><div class="muted" style="font-size:13.5px">Gunakan NIS dan kata sandi dari madrasah</div></div><form class="stack" data-f="hplogin" autocomplete="off"><label>NIS<input id="lu" name="u" placeholder="24001"></label><label>Kata sandi<input id="lp" name="p" type="password" placeholder="Kata sandi"></label>'+(h.err?'<p class="err">'+esc(h.err)+'</p>':'')+'<button class="btn" type="submit">Masuk</button></form><p class="muted" style="font-size:13px;margin:0;text-align:center"><b>Lupa kata sandi?</b> Laporkan ke admin madrasah.</p>'}
   else if(h.step==='home'){
     var rep=D.late.find(function(x){return x.sid===s.id&&x.tgl===tg}),att=D.att.find(function(x){return x.sid===s.id&&x.tgl===tg}),sun=now.getDay()===0,box='';
     if(rep){var t=stat(rep.status);box='<span class="pt '+t[1]+'">'+t[0]+'</span><p style="margin:8px 0 0;font-size:14px">Masuk pukul '+esc(rep.waktu)+', terlambat '+fmtMenit(rep.menit)+'. Alasan: '+esc(rep.alasan)+'.</p>'}
@@ -367,6 +369,7 @@ function tAkses(){
    ['Rekapitulasi detail pelanggaran per siswa (unduh dan cetak)',['Tidak','Tidak','Tidak','Semua kelas','Semua kelas','Tidak','Semua kelas']],
    ['Memantau hasil rekapitulasi seluruh madrasah',['Tidak','Tidak','Tidak','Semua kelas','Semua kelas','Semua kelas','Semua kelas']],
    ['Mencatat siswa pulang cepat',['Tidak','Tidak',SP,'Tidak','Tidak','Tidak','Semua kelas']],
+   ['Melihat jadwal guru piket seluruh lokasi (real-time)',['Tidak','Ya','Ya','Ya','Ya','Ya','Ya']],
    ['Melaporkan keterlambatan sendiri (memilih alasan)',['Ya','-','-','-','-','-','-']],
    ['Menyetujui atau menolak alasan keterlambatan',['Tidak','Tidak',SP,'Tidak','Tidak','Tidak','Semua kelas']],
    ['Mengubah keputusan yang sudah diambil guru piket',['Tidak','Tidak','Tidak','Tidak','Ya','Tidak','Ya']],
@@ -383,24 +386,7 @@ function tAkses(){
   '<div class="card"><div class="h"><h3>Lingkup kelas per guru</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">'+(adm?'Centang kelas yang boleh diakses setiap guru.':'Lingkup kelas hanya bisa diubah admin atau Waka Siswa.')+'</p>'+
   (scp.length?scp.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span><span class="muted" style="font-weight:400">'+esc(s.role)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+kl.map(function(k){return '<label style="'+lab+'">'+chk('data-a="kl" data-id="'+esc(s.id)+'" data-k="'+esc(k)+'"',(s.kelas||[]).indexOf(k)>-1)+esc(k)+'</label>'}).join('')+'</div></div>'}).join(''):'<p class="empty">Belum ada guru dengan lingkup kelas.</p>')+'</div>'+
   '<div class="card"><div class="h"><h3>Jadwal guru piket</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Bertugas hari ini: '+(on.length?on.join(', '):'belum ada')+'. '+(adm?'Centang hari tugas untuk mengubah jadwal.':'Jadwal hanya bisa diubah admin atau Waka Siswa.')+'</p>'+
-  (pk.length?pk.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+[1,2,3,4,5,6].map(function(d){return '<label style="'+lab+'">'+chk('data-a="pk" data-id="'+esc(s.id)+'" data-d="'+d+'"',(s.piket||[]).indexOf(d)>-1)+DAYS[d]+'</label>'}).join('')+'</div></div>'}).join(''):'<p class="empty">Belum ada guru piket.</p>')+'</div></div>'}
-function tAksesOld(){
-  var cols=['Siswa','Guru mapel','Guru piket','Guru BK','Admin'],own={'Guru mapel':1,'Guru piket':2,'Guru BK':3,'Admin':4}[S.user.role];
-  var rows=[['Melihat poin, riwayat, dan kehadiran milik sendiri',['Ya','-','-','-','-']],
-   ['Melihat data dan peringkat seluruh siswa',['Tidak','Ya','Ya','Ya','Ya']],
-   ['Mencatat penghargaan',['Tidak','Ya','Ya','Ya','Ya']],
-   ['Mencatat pelanggaran ringan (maksimal 10 poin)',['Tidak','Ya','Ya','Ya','Ya']],
-   ['Mencatat pelanggaran berat (di atas 10 poin)',['Tidak','Tidak','Tidak','Ya','Ya']],
-   ['Mengisi kehadiran harian',['Tidak','Tidak','Saat piket','Tidak','Ya']],
-   ['Menambah dan menghapus data siswa',['Tidak','Tidak','Tidak','Tidak','Ya']],
-   ['Mengatur jadwal piket dan mengembalikan data contoh',['Tidak','Tidak','Tidak','Tidak','Ya']]];
-  var cell=function(v,i){var c=v==='Ya'?'var(--good)':v==='Saat piket'?'var(--gold)':'var(--muted)';return '<td style="color:'+c+';font-weight:600'+(i===own?';background:var(--green-soft)':'')+'">'+v+'</td>'};
-  var pk=D.staff.filter(function(s){return s.role==='Guru piket'}),adm=can(S.user,'jadwal');
-  var on=pk.filter(isPiket).map(function(s){return esc(s.nama)});
-  return '<div class="stack-cards"><div class="card"><div class="h"><h3>Hak akses per peran</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Kolom perananmu ('+esc(S.user.role)+') diberi warna. Guru mapel dan guru piket sama-sama guru. Bedanya, hanya guru piket yang boleh mengisi kehadiran harian, dan hanya pada hari tugasnya.</p><div class="scroll"><table><thead><tr><th>Kemampuan</th>'+cols.map(function(c,i){return '<th'+(i===own?' style="background:var(--green-soft)"':'')+'>'+c+'</th>'}).join('')+'</tr></thead><tbody>'+
-  rows.map(function(r){return '<tr><td>'+r[0]+'</td>'+r[1].map(cell).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
-  '<div class="card"><div class="h"><h3>Jadwal guru piket</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Bertugas hari ini: '+(on.length?on.join(', '):'belum ada')+'. '+(adm?'Centang hari tugas untuk mengubah jadwal.':'Jadwal hanya bisa diubah admin.')+'</p>'+
-  (pk.length?pk.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+[1,2,3,4,5,6].map(function(d){return '<label style="flex-direction:row;align-items:center;gap:5px;font-weight:400;color:var(--ink)"><input type="checkbox" style="width:auto" data-a="pk" data-id="'+esc(s.id)+'" data-d="'+d+'"'+((s.piket||[]).indexOf(d)>-1?' checked':'')+(adm?'':' disabled')+'>'+DAYS[d]+'</label>'}).join('')+'</div></div>'}).join(''):'<p class="empty">Belum ada guru piket.</p>')+'</div></div>'}
+  (pk.length?pk.map(function(s){return '<div class="rec"><div class="l"><span>'+esc(s.nama)+'</span></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'+[1,2,3,4,5,6].map(function(d){return '<label style="'+lab+'">'+chk('data-a="pk" data-id="'+esc(s.id)+'" data-d="'+d+'"',(s.piket||[]).indexOf(d)>-1)+DAYS[d]+'</label>'}).join('')+'</div><label style="margin-top:8px;max-width:360px">Lokasi tugas<input data-a="lok" data-id="'+esc(s.id)+'" value="'+esc(s.lokasi||'')+'" placeholder="Contoh: Gerbang utama"'+(adm?'':' disabled')+'></label></div>'}).join(''):'<p class="empty">Belum ada guru piket.</p>')+'</div></div>'}
 function aksesSiswa(){return '<div class="card"><div class="h"><h3>Hak akses akunmu</h3></div><div class="two"><div><b>Bisa</b><div class="rec">Melihat poin pelanggaran dan penghargaanmu</div><div class="rec">Membaca riwayat catatan tentang dirimu</div><div class="rec">Melihat rekap kehadiran dan riwayat pulang cepatmu</div><div class="rec">Melihat posisi peringkat kelasmu</div><div class="rec">Melaporkan keterlambatanmu hari ini dengan memilih alasan</div></div><div><b>Tidak bisa</b><div class="rec">Mengubah atau menghapus catatan</div><div class="rec">Melihat nama, poin, atau data siswa lain</div><div class="rec">Mengisi atau mengubah kehadiran sendiri</div><div class="rec">Keberatan dengan catatan? Sampaikan ke guru BK.</div></div></div></div>'}
 
 function brand(sub){return '<div class="brand"><div class="mark">SIKAP</div><div class="sub">Sistem Informasi Kedisiplinan dan Apresiasi Siswa, MAN Balikpapan</div>'+(sub?'<div class="sub" style="color:var(--ink);font-weight:600">'+sub+'</div>':'')+'</div>'}
@@ -420,9 +406,9 @@ function vLogin(kind){
   var chips=st?D.students.slice(0,3).map(function(s){return '<button type="button" class="chip" data-a="fill" data-u="'+esc(s.nis)+'" data-p="'+esc(s.pass)+'">'+esc(s.nis)+' / '+esc(s.pass)+'</button>'}).join('')
     :D.staff.map(function(s){return '<button type="button" class="chip" data-a="fill" data-u="'+esc(s.user)+'" data-p="'+esc(s.pass)+'">'+esc(s.user)+' / '+esc(s.pass)+'</button>'}).join('');
   return '<div class="login">'+(MODE==='all'?'<button class="back" data-a="go" data-v="portal">&larr; Kembali</button>':'')+brand(st?'Masuk sebagai siswa':'Masuk sebagai guru atau admin')+(st?'<div style="margin-top:12px">'+scene()+'</div>':'')+
-  '<div class="card" style="margin-top:16px"><form class="stack" data-f="'+kind+'" autocomplete="off"><label>'+(st?'Nomor induk siswa (NIS)':'Username')+'<input id="lu" name="u" placeholder="'+(st?'24001':'admin')+'"></label><label>Kata sandi<input id="lp" name="p" type="text" placeholder="Kata sandi"></label>'+
+  '<div class="card" style="margin-top:16px"><form class="stack" data-f="'+kind+'" autocomplete="off"><label>'+(st?'Nomor induk siswa (NIS)':'Username')+'<input id="lu" name="u" placeholder="'+(st?'24001':'admin')+'"></label><label>Kata sandi<input id="lp" name="p" type="'+(st?'password':'text')+'" placeholder="Kata sandi"></label>'+
   (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn'+(st?'':' gold')+'" type="submit">Masuk</button></form>'+
-  '<div class="demo"><p>Akun contoh. Ketuk untuk mengisi otomatis.</p><div class="chips">'+chips+'</div></div></div>'+(st&&MODE==='siswa'?'<p class="foot" style="margin-top:14px"><button class="back" data-a="go" data-v="hp">Lihat tampilan aplikasi di HP (simulasi)</button></p>':'')+'</div>'}
+  (st?'<div class="demo" style="margin-top:14px"><p style="margin:0"><b>Lupa kata sandi?</b> Laporkan ke admin madrasah untuk diatur ulang.</p></div>':'<div class="demo"><p>Akun contoh. Ketuk untuk mengisi otomatis.</p><div class="chips">'+chips+'</div></div>')+'</div>'+(st&&MODE==='siswa'?'<p class="foot" style="margin-top:14px"><button class="back" data-a="go" data-v="hp">Lihat tampilan aplikasi di HP (simulasi)</button></p>':'')+'</div>'}
 
 function top(title,who){return '<div class="appbar"><div><h1>'+title+'</h1><div class="who">'+who+'</div></div><button class="btn sm" data-a="out">Keluar</button></div>'}
 function greet(s){var p=pel(s.id),st=p<10?['good','Disiplin baik']:p<30?['bad','Perlu perhatian']:['bad','Perlu pembinaan'];return '<div class="greet"><h2>Halo, '+esc(s.nama.split(' ')[0])+'</h2><span class="pt '+st[0]+'">'+st[1]+'</span></div>'}
@@ -437,9 +423,9 @@ function vSiswa(){
   return top('Portal siswa',esc(s.nama)+' &middot; '+esc(s.kelas)+' &middot; NIS '+esc(s.nis))+'<div class="stack-cards">'+idCard(s)+lateCard(s)+'<div class="grid3">'+
    sealH(pel(s.id),'Poin pelanggaran','var(--bad)','var(--bad-soft)')+sealH(pgh(s.id),'Poin penghargaan','var(--good)','var(--good-soft)')+sealH('#'+rank(s),'Peringkat disiplin di '+esc(s.kelas)+' dari '+tot+' siswa','var(--gold)','var(--gold-soft)')+'</div>'+
    '<div class="card"><div class="h"><h3>Rekap kehadiran</h3></div><div class="att"><div><b style="color:var(--good)">'+c.hadir+'</b><span>Hadir</span></div><div><b style="color:var(--gold)">'+c.sakit+'</b><span>Sakit</span></div><div><b style="color:var(--blue)">'+c.izin+'</b><span>Izin</span></div><div><b style="color:var(--bad)">'+c.alpa+'</b><span>Alpa</span></div></div>'+
-   '<div class="scroll"><table><thead><tr><th>Tanggal</th><th>Status</th></tr></thead><tbody>'+(att.length?att.slice(0,8).map(function(a){return '<tr><td>'+fmt(a.tgl)+'</td><td style="text-transform:capitalize">'+a.st+'</td></tr>'}).join(''):'<tr><td colspan="2" class="muted">Belum ada data kehadiran.</td></tr>')+'</tbody></table></div></div>'+
+   '<div class="scroll hs"><table><thead><tr><th>Tanggal</th><th>Status</th></tr></thead><tbody>'+(att.length?att.slice(0,40).map(function(a){return '<tr><td>'+fmt(a.tgl)+'</td><td style="text-transform:capitalize">'+a.st+'</td></tr>'}).join(''):'<tr><td colspan="2" class="muted">Belum ada data kehadiran.</td></tr>')+'</tbody></table></div></div>'+
    '<div class="card"><div class="h"><h3>Riwayat pelanggaran dan penghargaan</h3></div><div class="scroll"><table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Poin</th><th>Catatan</th></tr></thead><tbody>'+
-   (recs.length?recs.map(function(r){return '<tr><td style="white-space:nowrap">'+fmt(r.tgl)+'</td><td>'+esc(r.kat)+'</td><td><span class="pt '+(r.type==='reward'?'good':'bad')+'">'+(r.type==='reward'?'+':'-')+r.poin+'</span></td><td class="muted">'+esc(r.cat)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Belum ada catatan. Pertahankan.</td></tr>')+'</tbody></table></div></div>'+pulangS(s)+aksesSiswa()+'</div>'}
+   (recs.length?recs.map(function(r){return '<tr><td style="white-space:nowrap">'+fmt(r.tgl)+'</td><td>'+esc(r.kat)+'</td><td><span class="pt '+(r.type==='reward'?'good':'bad')+'">'+(r.type==='reward'?'+':'-')+r.poin+'</span></td><td class="muted">'+esc(r.cat)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Belum ada catatan. Pertahankan.</td></tr>')+'</tbody></table></div></div>'+pulangS(s)+'</div>'}
 
 function opts(list){list=scoped(S.user);return list.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.nama)+' ('+esc(s.kelas)+')</option>'}).join('')}
 
@@ -527,6 +513,19 @@ function tRekap(){
       var c={hadir:0,sakit:0,izin:0,alpa:0};d.att.forEach(function(x){if(x.sid===st.id)c[x.st]++});
       out+=cardH('Detail: '+esc(st.nama)+' ('+esc(st.kelas)+', NIS '+esc(st.nis)+')',tiles([[c.hadir,'Hadir','var(--good)'],[c.sakit,'Sakit','var(--gold)'],[c.izin,'Izin','var(--blue)'],[c.alpa,'Alpa','var(--bad)']])+'<div style="height:12px"></div>'+tbl(['Tanggal','Jenis','Kategori atau alasan','Poin','Catatan'],ev.map(function(x){return '<tr><td style="white-space:nowrap">'+fmt(x.t)+'</td><td>'+esc(x.j)+'</td><td>'+esc(x.k)+'</td><td>'+(x.p?'<span class="pt bad">'+esc(x.p)+'</span>':'')+'</td><td class="muted">'+esc(x.c)+'</td></tr>'}),'Tidak ada catatan.'))}}
   return out+'</div>'}
+var HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+function clock(n){return n.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+', pukul '+hm(n)+':'+String(n.getSeconds()).padStart(2,'0')}
+function tJadwal(){
+  var now=new Date(),d=now.getDay(),pk=D.staff.filter(function(x){return x.role==='Guru piket'});S.jd=dstr(now);
+  var on=pk.filter(function(x){return (x.piket||[]).indexOf(d)>-1});
+  var kt=function(x){return esc((x.kelas||[]).join(', ')||'-')};
+  var head='<div class="card"><div class="h"><h3>Guru piket bertugas sekarang</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px"><span id="clk">'+esc(clock(now))+'</span></p>'+
+   (d===0?'<p class="empty">Hari Minggu, tidak ada jadwal piket.</p>':on.length?on.map(function(x){return '<div class="rec"><div class="l"><span>'+esc(x.nama)+'</span><span class="pt good">Bertugas</span></div><div class="muted">Lokasi: '+esc(x.lokasi||'-')+' &middot; Kelas tugas: '+kt(x)+'</div></div>'}).join(''):'<p class="empty">Belum ada guru piket yang dijadwalkan hari ini.</p>')+'</div>';
+  var rows=[1,2,3,4,5,6].map(function(dd){var l=pk.filter(function(x){return (x.piket||[]).indexOf(dd)>-1}),t=dd===d;
+    return '<tr'+(t?' style="background:var(--green-soft)"':'')+'><td style="white-space:nowrap;font-weight:600">'+HARI[dd]+(t?' <span class="pt good">Hari ini</span>':'')+'</td><td>'+(l.length?l.map(function(x){return esc(x.nama)}).join('<br>'):'<span class="muted">Belum ada jadwal</span>')+'</td><td>'+l.map(function(x){return esc(x.lokasi||'-')}).join('<br>')+'</td><td class="muted">'+l.map(kt).join('<br>')+'</td></tr>'});
+  return '<div class="stack-cards">'+head+cardH('Jadwal piket mingguan seluruh lokasi','<div class="scroll"><table><thead><tr><th>Hari</th><th>Guru piket</th><th>Lokasi</th><th>Kelas tugas</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>')+'</div>'}
+setInterval(function(){var c=document.getElementById('clk');if(!c)return;var n=new Date();c.textContent=clock(n);if(S.jd&&S.jd!==dstr(n)&&S.view==='staff'&&S.tab==='jadwal')render()},1000);
+window.addEventListener('storage',function(e){if(e.key!==KEY||S.view!=='staff'||S.tab!=='jadwal')return;try{var nd=JSON.parse(e.newValue);if(nd&&nd.staff){D=nd;D.late=D.late||[];D.pulang=D.pulang||[];var me=D.staff.find(function(x){return x.id===S.user.id});if(me)S.user=me;render()}}catch(x){}});
 function tRecord(type){
   if(!can(S.user,'catat'))return lockedCatat();
   if(type==='reward'&&!can(S.user,'reward'))return '<div class="card"><div class="h"><h3>Input penghargaan</h3></div><p class="empty">Penghargaan hanya dicatat oleh Waka Siswa, wali kelas, atau admin.</p></div>';
@@ -553,14 +552,14 @@ function tSiswa(){
   '<div class="card"><div class="h"><h3>Daftar siswa</h3></div><input class="search" id="q" data-a="q" placeholder="Cari nama, NIS, atau kelas"><div class="scroll" id="stlist">'+stList('')+'</div></div></div>'}
 function stList(q){
   q=q.toLowerCase();var l=D.students.filter(function(s){return (s.nama+s.nis+s.kelas).toLowerCase().indexOf(q)>-1});
-  return '<table><thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th></th></tr></thead><tbody>'+(l.length?l.map(function(s){return '<tr><td style="font-family:var(--mono)">'+esc(s.nis)+'</td><td>'+esc(s.nama)+'</td><td class="muted">'+esc(s.kelas)+'</td><td><button class="x" data-a="del" data-id="'+esc(s.id)+'">Hapus</button></td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Tidak ada siswa yang cocok.</td></tr>')+'</tbody></table>'}
+  return '<table><thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th></th></tr></thead><tbody>'+(l.length?l.map(function(s){return '<tr><td style="font-family:var(--mono)">'+esc(s.nis)+'</td><td>'+esc(s.nama)+'</td><td class="muted">'+esc(s.kelas)+'</td><td style="white-space:nowrap"><button class="x" data-a="rspw" data-id="'+esc(s.id)+'">Atur ulang sandi</button> <button class="x" data-a="del" data-id="'+esc(s.id)+'">Hapus</button></td></tr>'}).join(''):'<tr><td colspan="4" class="muted">Tidak ada siswa yang cocok.</td></tr>')+'</tbody></table>'}
 
 function vStaff(){
   var pend=D.late.filter(function(x){return x.status==='menunggu'&&visible(x.sid)}).length;
-  var T=[["ringkasan","Ringkasan"],["rekap","Rekapitulasi"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pulang","Pulang cepat"],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["akun","Kelola akun"],["akses","Hak akses"]];
-  var ro=S.user.role,okT={'Admin':null,'Kepala madrasah':['ringkasan','rekap'],'Waka Siswa':['ringkasan','rekap','telat','pulang','pelanggaran','reward','akses'],'Guru BK':['ringkasan','rekap','telat','pulang','pelanggaran'],'Guru piket':['ringkasan','telat','pulang','pelanggaran'],'Wali kelas':['ringkasan','telat','pulang','pelanggaran','reward']}[ro];
+  var T=[["ringkasan","Ringkasan"],["jadwal","Jadwal piket"],["rekap","Rekapitulasi"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pulang","Pulang cepat"],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["akun","Kelola akun"],["akses","Hak akses"]];
+  var ro=S.user.role,okT={'Admin':null,'Kepala madrasah':['ringkasan','jadwal','rekap'],'Waka Siswa':['ringkasan','jadwal','rekap','telat','pulang','pelanggaran','reward','akses'],'Guru BK':['ringkasan','jadwal','rekap','telat','pulang','pelanggaran'],'Guru piket':['ringkasan','jadwal','telat','pulang','pelanggaran'],'Wali kelas':['ringkasan','jadwal','telat','pulang','pelanggaran','reward']}[ro];
   if(okT){T=T.filter(function(t){return okT.indexOf(t[0])>-1});if(okT.indexOf(S.tab)<0)S.tab='ringkasan'}
-  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},pulang:tPulang,rekap:tRekap,reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,akses:tAkses}[S.tab]();
+  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},pulang:tPulang,jadwal:tJadwal,rekap:tRekap,reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,akses:tAkses}[S.tab]();
   return top('Portal '+esc(S.user.role.toLowerCase()),esc(S.user.nama)+dutyNote(S.user))+'<div class="layout"><div class="tabs" role="tablist">'+T.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(S.tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div><div style="min-width:0">'+body+'</div></div>'}
 
 function render(){
@@ -599,10 +598,12 @@ $app.addEventListener('click',function(e){
   else if(a==='impclear'){S.imp=null;S.err='';S.flash='';render()}
   else if(a==='impcopy'){var smp='NIS;Nama;Kelas\n24007;Contoh Siswa Satu;XI IPA 1\n24008;Contoh Siswa Dua;XI IPS 2';try{navigator.clipboard.writeText(smp).then(function(){S.err='';S.flash='Contoh format disalin.';render()},function(){S.flash='';S.err='Salin otomatis tidak didukung. Pilih teks contoh lalu salin manual.';render()})}catch(er){S.flash='';S.err='Salin otomatis tidak didukung. Pilih teks contoh lalu salin manual.';render()}}
   else if(a==='delacc'&&can(S.user,'akun')){var aid=t.dataset.id;if(aid!==S.user.id){D.staff=D.staff.filter(function(x){return x.id!==aid});save();render()}}
+  else if(a==='rspw'&&can(S.user,'siswa')){var rs=byId(t.dataset.id);if(rs){rs.pass=rs.nis;save();S.err='';S.flash='Sandi '+rs.nama+' diatur ulang menjadi NIS.';render()}}
   else if(a==='del'&&can(S.user,'siswa')){var id=t.dataset.id;D.students=D.students.filter(function(s){return s.id!==id});D.records=D.records.filter(function(r){return r.sid!==id});D.att=D.att.filter(function(r){return r.sid!==id});save();render()}
 });
 $app.addEventListener('change',function(e){
   if(e.target.id==='impfile'){readImpFile(e.target.files&&e.target.files[0]);return}
+  if(e.target.dataset.a==='lok'&&can(S.user,'jadwal')){var lk=D.staff.find(function(x){return x.id===e.target.dataset.id});if(lk){lk.lokasi=e.target.value.trim();save()}return}
   if(e.target.dataset.a==='rk'){rkF()[e.target.dataset.k]=e.target.value;if(e.target.dataset.k==='kelas')rkF().sid='';render();return}
   if(e.target.dataset.a==='kat'){var f=e.target.form,type=f.dataset.type,m=KAT[type][+e.target.value][1]===0;document.getElementById('manual').hidden=!m}
   if(e.target.dataset.a==='kl'&&can(S.user,'jadwal')){var sf=D.staff.find(function(x){return x.id===e.target.dataset.id}),kk=e.target.dataset.k;if(sf){sf.kelas=sf.kelas||[];var jx=sf.kelas.indexOf(kk);if(e.target.checked&&jx<0)sf.kelas.push(kk);if(!e.target.checked&&jx>-1)sf.kelas.splice(jx,1);save();render()}}
