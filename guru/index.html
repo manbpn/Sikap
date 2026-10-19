@@ -314,18 +314,18 @@ function buildImport(rows,fname){
     else seen[nis]=1;
     return {nis:nis,nama:nama,kelas:kelas,st:st,msg:msg}});
   return {fname:fname,items:items}}
-function readImpFile(f){
-  if(!f||!can(S.user,'siswa'))return;
+function readImpFile(f,kind){
+  if(!f||!can(S.user,'siswa'))return;var bld=function(r,n){if(kind==='gtk')S.gimp=buildGtk(r,n);else S.imp=buildImport(r,n)};
   S.err='';S.flash='';
   if(f.size>3*1024*1024){S.err='File terlalu besar. Maksimal 3 MB.';render();return}
   var ext=(f.name.split('.').pop()||'').toLowerCase(),fr=new FileReader();
   fr.onerror=function(){S.err='File tidak bisa dibaca. Coba lagi.';render()};
   if(ext==='xlsx'||ext==='xls'){
     if(typeof XLSX==='undefined'){S.err='Pembaca Excel belum termuat. Simpan file sebagai CSV lalu unggah lagi.';render();return}
-    fr.onload=function(){try{var wb=XLSX.read(fr.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});S.imp=buildImport(rows,f.name)}catch(e){S.err='File Excel tidak bisa dibaca. Pastikan formatnya .xlsx.'}render()};
+    fr.onload=function(){try{var wb=XLSX.read(fr.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});bld(rows,f.name)}catch(e){S.err='File Excel tidak bisa dibaca. Pastikan formatnya .xlsx.'}render()};
     fr.readAsArrayBuffer(f)
   }else{
-    fr.onload=function(){S.imp=buildImport(parseDelim(String(fr.result)),f.name);render()};
+    fr.onload=function(){bld(parseDelim(String(fr.result)),f.name);render()};
     fr.readAsText(f)
   }
 }
@@ -349,9 +349,58 @@ function tImpor(){
     '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+(ok>0&&!im.err?'<button class="btn" data-a="impgo">Impor '+ok+' siswa</button>':'')+'<button class="btn ghost" data-a="impclear">Batalkan</button></div>'+
     (er>0?'<p class="muted" style="font-size:13.5px;margin:10px 0 0">Baris yang perlu diperbaiki tidak ikut diimpor. Perbaiki di file lalu unggah ulang.</p>':'')+'</div>'}
   return '<div class="stack-cards">'+up+pv+'</div>'}
+var TUGAS=['Wali kelas','Guru piket','Guru BK','Waka Siswa','Waka Kurikulum','Kepala madrasah','Admin','Tanpa tugas'];
+function normTugas(t){var x=String(t||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+  if(!x||x==='tanpa tugas'||x==='tidak ada'||x==='guru mapel'||x==='mapel'||x==='tu'||x==='tendik')return 'Tanpa tugas';
+  if(/kurikulum|wakakur/.test(x))return 'Waka Kurikulum';if(/waka|wakil|wakasis|kesiswaan/.test(x))return 'Waka Siswa';
+  if(/wali/.test(x))return 'Wali kelas';if(/piket/.test(x))return 'Guru piket';if(/\bbk\b|bimbingan|konseling/.test(x))return 'Guru BK';
+  if(/kepala|kamad|kepsek/.test(x))return 'Kepala madrasah';if(/admin/.test(x))return 'Admin';return null}
+function normJenis(j){return /tenaga|tendik|kependidikan|^tu$|staf|staff|pegawai/i.test(String(j||''))?'Tenaga Kependidikan':'Guru'}
+function guser(nama,taken){var n=String(nama).split(',')[0].toLowerCase().replace(/\b(bapak|ibu|drs|dra|dr|hj|prof|ir|h)\b\.?/g,' ').replace(/[^a-z ]/g,' ').trim().split(/\s+/).filter(Boolean),b=n.slice(0,2).join('.')||'guru',u=b,i=1;while(taken[u]){i++;u=b+i}taken[u]=1;return u}
+function rpass(){var c='abcdefghjkmnpqrstuvwxyz23456789',o='';for(var i=0;i<6;i++)o+=c.charAt(Math.floor(Math.random()*c.length));return o}
+function buildGtk(rows,fname){
+  rows=rows.filter(function(r){return r.some(function(c){return String(c==null?'':c).trim()!==''})});
+  if(!rows.length)return {fname:fname,items:[],err:'Tidak ada data yang terbaca.'};
+  if(rows.length>501)return {fname:fname,items:[],err:'Maksimal 500 GTK per impor. Pecah file menjadi beberapa bagian.'};
+  var low=rows[0].map(function(c){return String(c==null?'':c).trim().toLowerCase()}),hdr=low.some(function(c){return /^(nip|nama|jenis|tugas|kelas|username|sandi)/.test(c)});
+  var fi=function(re){return low.findIndex(function(c){return re.test(c)})};
+  var ix=hdr?{nip:fi(/^nip|^nuptk/),nama:fi(/^nama/),jenis:fi(/^jenis|^status/),tugas:fi(/^tugas|^peran/),kelas:fi(/^kelas/),user:fi(/^user/),pass:fi(/^sandi|^pass/)}:{nip:0,nama:1,jenis:2,tugas:3,kelas:4,user:-1,pass:-1};
+  if(hdr&&ix.nama<0)return {fname:fname,items:[],err:'Baris judul harus memuat kolom Nama.'};
+  var cell=function(r,i){return i<0||r[i]==null?'':String(r[i]).trim()};
+  var taken={},hn={},hm2={};D.staff.forEach(function(x){taken[x.user]=1;if(x.nip)hn[x.nip]=1;hm2[String(x.nama).toLowerCase()]=1});var seen={},seenN={};
+  var items=rows.slice(hdr?1:0).map(function(r){
+    var nip=cell(r,ix.nip).replace(/\s+/g,''),nama=cell(r,ix.nama).replace(/\s+/g,' '),jenis=normJenis(cell(r,ix.jenis)),tg=normTugas(cell(r,ix.tugas)),
+      kelas=cell(r,ix.kelas).split(/[|\/&]|\bdan\b/i).map(function(k){return k.replace(/\s+/g,' ').trim().toUpperCase()}).filter(Boolean),st='ok',msg='Siap diimpor',key=nip||nama.toLowerCase();
+    if(!nama){st='err';msg='Nama kosong'}
+    else if(tg===null){st='err';msg='Tugas tidak dikenal: '+cell(r,ix.tugas)}
+    else if((nip&&hn[nip])||hm2[nama.toLowerCase()]){st='dup';msg='Sudah terdaftar, dilewati'}
+    else if(seen[key]||(!nip&&seenN[nama.toLowerCase()])){st='dup';msg='Ganda di file (satu orang satu tugas), dilewati'}
+    else{seen[key]=1;seenN[nama.toLowerCase()]=1;if((tg==='Wali kelas'||tg==='Guru piket')&&!kelas.length)msg='Siap diimpor (kelas belum diisi)'}
+    var it={nip:nip,nama:nama,jenis:jenis,tugas:tg,kelas:kelas,st:st,msg:msg};
+    if(st==='ok'){var cu=cell(r,ix.user).toLowerCase().replace(/[^a-z0-9._-]/g,'');if(cu&&!taken[cu]){taken[cu]=1;it.user=cu}else it.user=guser(nama,taken);var cp=cell(r,ix.pass);it.pass=cp.length>=6?cp:rpass()}
+    return it});
+  return {fname:fname,items:items}}
+function gList(q){q=(q||'').toLowerCase();var l=D.staff.filter(function(x){return (x.nama+(x.nip||'')+x.user+x.role).toLowerCase().indexOf(q)>-1});
+  return '<table><thead><tr><th>Nama</th><th>Username</th><th>Tugas di aplikasi</th><th>Kelas</th><th></th></tr></thead><tbody>'+(l.length?l.map(function(x){var me=x.id===S.user.id;
+    return '<tr><td>'+esc(x.nama)+'<div class="muted" style="font-size:13px">'+esc(x.jenis||'Guru')+(x.nip?' &middot; NIP '+esc(x.nip):'')+'</div></td><td style="font-family:var(--mono)">'+esc(x.user)+'</td><td><select data-a="tugas" data-id="'+esc(x.id)+'"'+(me?' disabled':'')+'>'+TUGAS.map(function(t){return '<option'+(x.role===t?' selected':'')+'>'+t+'</option>'}).join('')+'</select></td><td class="muted">'+esc((x.kelas||[]).join(', ')||'-')+'</td><td style="white-space:nowrap">'+(me?'<span class="muted">Akunmu</span>':'<button class="x" data-a="gpw" data-id="'+esc(x.id)+'">Atur ulang sandi</button> <button class="x" data-a="delacc" data-id="'+esc(x.id)+'">Hapus</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Tidak ada yang cocok.</td></tr>')+'</tbody></table>'}
+function tGtk(){
+  if(!can(S.user,'akun'))return '<div class="card"><div class="h"><h3>Data GTK</h3></div><p class="empty">Impor data GTK dan pengaturan tugas hanya bisa dilakukan admin utama.</p></div>';
+  var im=S.gimp,it=im?im.items:[],n=function(x){return it.filter(function(y){return y.st===x}).length},ok=n('ok'),dup=n('dup'),er=n('err'),col={ok:'var(--good)',dup:'var(--gold)',err:'var(--bad)'};
+  var up='<div class="card"><div class="h"><h3>Impor data guru dan tenaga kependidikan (GTK)</h3></div><p class="muted" style="margin:0 0 14px;font-size:14.5px">Unggah file Excel (.xlsx) atau CSV dengan kolom: NIP, Nama, Jenis (Guru atau Tenaga Kependidikan), Tugas, dan Kelas. Kolom Username dan Sandi boleh ditambahkan. Kalau kosong, username dan sandi awal dibuat otomatis. Tugas yang dikenali: Wali kelas, Guru piket, Guru BK, Waka Siswa, Waka Kurikulum, Kepala madrasah, Admin, atau Tanpa tugas (data saja, belum bisa masuk aplikasi). Kelas wali atau piket ditulis dengan tanda | bila lebih dari satu.</p>'+
+   '<div class="stack"><label>Pilih file<input id="gfile" type="file" accept=".csv,.txt,.xlsx,.xls"></label><label>Atau tempel data dari Excel atau CSV<textarea id="gtxt" placeholder="NIP;Nama;Jenis;Tugas;Kelas"></textarea></label>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+(S.flash?'<p class="ok">'+esc(S.flash)+'</p>':'')+
+   '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-a="gparse">Baca data tempel</button><button class="btn ghost" data-a="gtpl">Unduh template CSV</button></div></div></div>';
+  var pv='';
+  if(im){pv='<div class="card"><div class="h" style="justify-content:space-between;flex-wrap:wrap"><h3>Pratinjau: '+esc(im.fname)+'</h3><div class="muted" style="font-size:14px">'+it.length+' baris dibaca</div></div>'+(im.err?'<p class="err">'+esc(im.err)+'</p>':
+    '<div class="att" style="grid-template-columns:repeat(3,1fr)"><div><b style="color:var(--good)">'+ok+'</b><span>Siap diimpor</span></div><div><b style="color:var(--gold)">'+dup+'</b><span>Dilewati</span></div><div><b style="color:var(--bad)">'+er+'</b><span>Perlu diperbaiki</span></div></div><div class="scroll"><table><thead><tr><th>Nama</th><th>Jenis</th><th>Tugas</th><th>Kelas</th><th>Status</th></tr></thead><tbody>'+
+    it.slice(0,100).map(function(x){return '<tr><td>'+esc(x.nama)+'<div class="muted" style="font-size:13px">'+esc(x.nip||'')+'</div></td><td>'+esc(x.jenis)+'</td><td>'+esc(x.tugas||'-')+'</td><td class="muted">'+esc((x.kelas||[]).join(', ')||'-')+'</td><td style="color:'+col[x.st]+';font-weight:600">'+esc(x.msg)+'</td></tr>'}).join('')+'</tbody></table></div>')+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+(ok>0&&!im.err?'<button class="btn" data-a="ggo">Impor '+ok+' GTK</button>':'')+'<button class="btn ghost" data-a="gclear">Batalkan</button></div></div>'}
+  var cr='';
+  if(S.gcred&&S.gcred.length){cr='<div class="card"><div class="h" style="justify-content:space-between;flex-wrap:wrap"><h3>Akun yang baru dibuat</h3><button class="btn sm" data-a="gcsv">Unduh daftar akun (CSV)</button></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Sandi awal hanya tampil di sini. Unduh dan bagikan ke masing-masing guru, lalu sarankan segera diganti.</p>'+
+    tbl(['Nama','Tugas','Username','Sandi awal'],S.gcred.map(function(x){return '<tr><td>'+esc(x[0])+'</td><td class="muted">'+esc(x[1])+'</td><td style="font-family:var(--mono)">'+esc(x[2])+'</td><td style="font-family:var(--mono)">'+esc(x[3])+'</td></tr>'}),'')+'</div>'}
+  return '<div class="stack-cards">'+up+pv+cr+'<div class="card"><div class="h"><h3>Data GTK dan pengaturan tugas ('+D.staff.length+')</h3></div><p class="muted" style="margin:0 0 12px;font-size:14.5px">Ubah kolom Tugas untuk menentukan peran tiap orang di aplikasi. Kelas wali diatur di tab Hak akses, dan hari serta lokasi piket di tab Jadwal piket.</p><input class="search" id="gq" data-a="gq" placeholder="Cari nama, NIP, username, atau tugas"><div class="scroll" id="glist">'+gList('')+'</div></div></div>'}
 function tAkun(){
   if(!can(S.user,'akun'))return '<div class="card"><div class="h"><h3>Kelola akun</h3></div><p class="empty">Akun staf hanya dibuat dan diatur oleh admin utama.</p></div>';
-  var R=['Wali kelas','Guru piket','Guru BK','Waka Siswa','Waka Kurikulum','Kepala madrasah','Admin'];
+  var R=['Wali kelas','Guru piket','Guru BK','Waka Siswa','Waka Kurikulum','Kepala madrasah','Admin','Tanpa tugas'];
   return '<div class="two"><div class="card"><div class="h"><h3>Buat akun staf</h3></div><form class="stack" data-f="acc"><label>Nama lengkap<input name="nama" placeholder="Nama beserta gelar"></label><label>Username<input name="user" placeholder="wali.xia"></label><label>Peran<select name="role">'+R.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></label><label>Kata sandi awal<input name="pass" placeholder="Minimal 6 karakter"></label>'+
   (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+(S.flash?'<p class="ok">'+esc(S.flash)+'</p>':'')+'<button class="btn" type="submit">Buat akun</button></form></div>'+
   '<div class="card"><div class="h"><h3>Akun staf</h3></div><div class="scroll"><table><thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th></th></tr></thead><tbody>'+
@@ -376,6 +425,7 @@ function tAkses(){
    ['Membuat jadwal guru piket (hari, lokasi, kelas tugas)',[T,T,T,T,Y,Y,T,Y]],
    ['Mengatur lingkup kelas wali kelas',[T,T,T,T,Y,T,T,Y]],
    ['Menambah dan menghapus data siswa',[T,T,T,T,T,T,T,Y]],
+   ['Mengimpor data GTK dan mengatur tugas tiap orang di aplikasi',[T,T,T,T,T,T,T,Y]],
    ['Membuat akun staf dan menentukan perannya',[T,T,T,T,T,T,T,Y]]];
   var cell=function(v,i){var c=(v==='Tidak'||v==='-')?'var(--muted)':v.indexOf('Saat')===0?'var(--gold)':'var(--good)';return '<td style="color:'+c+';font-weight:600'+(i===own?';background:var(--green-soft)':'')+'">'+v+'</td>'};
   var adm=can(S.user,'jadwal'),pk=D.staff.filter(function(s){return s.role==='Guru piket'}),on=pk.filter(isPiket).map(function(s){return esc(s.nama)});
@@ -407,7 +457,7 @@ function vLogin(kind){
   return '<div class="login">'+(MODE==='all'?'<button class="back" data-a="go" data-v="portal">&larr; Kembali</button>':'')+brand(st?'Masuk sebagai siswa':'Masuk sebagai guru atau admin')+(st?'<div style="margin-top:12px">'+scene()+'</div>':'')+
   '<div class="card" style="margin-top:16px"><form class="stack" data-f="'+kind+'" autocomplete="off"><label>'+(st?'Nomor induk siswa (NIS)':'Username')+'<input id="lu" name="u" placeholder="'+(st?'24001':'admin')+'"></label><label>Kata sandi<input id="lp" name="p" type="'+(st?'password':'text')+'" placeholder="Kata sandi"></label>'+
   (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn'+(st?'':' gold')+'" type="submit">Masuk</button></form>'+
-  (st?'<div class="demo" style="margin-top:14px"><p style="margin:0"><b>Lupa kata sandi?</b> Laporkan ke admin madrasah untuk diatur ulang.</p></div>':'<div class="demo"><p>Akun contoh. Ketuk untuk mengisi otomatis.</p><div class="chips">'+chips+'</div></div>')+'</div>'+(st&&MODE==='siswa'?'<p class="foot" style="margin-top:14px"><button class="back" data-a="go" data-v="hp">Lihat tampilan aplikasi di HP (simulasi)</button></p>':'')+'</div>'}
+  '<div class="demo" style="margin-top:14px"><p style="margin:0"><b>Lupa kata sandi?</b> '+(st?'Laporkan ke admin madrasah untuk diatur ulang.':'Hubungi admin utama untuk diatur ulang.')+'</p></div>'+'</div>'+(st&&MODE==='siswa'?'<p class="foot" style="margin-top:14px"><button class="back" data-a="go" data-v="hp">Lihat tampilan aplikasi di HP (simulasi)</button></p>':'')+'</div>'}
 
 function top(title,who){return '<div class="appbar"><div><h1>'+title+'</h1><div class="who">'+who+'</div></div><button class="btn sm" data-a="out">Keluar</button></div>'}
 function greet(s){var p=pel(s.id),st=p<10?['good','Disiplin baik']:p<30?['bad','Perlu perhatian']:['bad','Perlu pembinaan'];return '<div class="greet"><h2>Halo, '+esc(s.nama.split(' ')[0])+'</h2><span class="pt '+st[0]+'">'+st[1]+'</span></div>'}
@@ -557,10 +607,10 @@ function stList(q){
 
 function vStaff(){
   var pend=D.late.filter(function(x){return x.status==='menunggu'&&visible(x.sid)}).length;
-  var T=[["ringkasan","Ringkasan"],["jadwal","Jadwal piket"],["rekap","Rekapitulasi"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pulang","Pulang cepat"],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["akun","Kelola akun"],["akses","Hak akses"]];
+  var T=[["ringkasan","Ringkasan"],["jadwal","Jadwal piket"],["rekap","Rekapitulasi"],["telat","Keterlambatan"+(pend?' ('+pend+')':'')],["pulang","Pulang cepat"],["pelanggaran","Input pelanggaran"],["reward","Input penghargaan"],["absensi","Absensi"],["siswa","Kelola siswa"],["impor","Impor siswa"],["gtk","Data GTK"],["akun","Kelola akun"],["akses","Hak akses"]];
   var ro=S.user.role,okT={'Admin':null,'Waka Kurikulum':['ringkasan','jadwal'],'Kepala madrasah':['ringkasan','jadwal','rekap'],'Waka Siswa':['ringkasan','jadwal','rekap','telat','pulang','pelanggaran','reward','akses'],'Guru BK':['ringkasan','jadwal','rekap','telat','pulang','pelanggaran'],'Guru piket':['ringkasan','jadwal','telat','pulang','pelanggaran'],'Wali kelas':['ringkasan','jadwal','telat','pulang','pelanggaran','reward']}[ro];
   if(okT){T=T.filter(function(t){return okT.indexOf(t[0])>-1});if(okT.indexOf(S.tab)<0)S.tab='ringkasan'}
-  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},pulang:tPulang,jadwal:tJadwal,rekap:tRekap,reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,akses:tAkses}[S.tab]();
+  var body={ringkasan:tRingkasan,pelanggaran:function(){return tRecord('pelanggaran')},pulang:tPulang,jadwal:tJadwal,rekap:tRekap,reward:function(){return tRecord('reward')},absensi:tAbsen,siswa:tSiswa,telat:tTelat,impor:tImpor,akun:tAkun,gtk:tGtk,akses:tAkses}[S.tab]();
   return top('Portal '+esc(S.user.role.toLowerCase()),esc(S.user.nama)+dutyNote(S.user))+'<div class="layout"><div class="tabs" role="tablist">'+T.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(S.tab===t[0])+'" data-a="tab" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div><div style="min-width:0">'+body+'</div></div>'}
 
 function render(){
@@ -596,6 +646,12 @@ $app.addEventListener('click',function(e){
   else if(a==='jamsave'&&can(S.user,'jadwal')){var jv=document.getElementById('jamin'),jt=jv?jv.value:'';if(!/^\d{2}:\d{2}$/.test(jt)){S.flash='';S.err='Isi jam dengan format jam:menit.';render();return}D.cfg.jam=jt;save();S.err='';S.flash='Batas jam masuk disimpan.';render()}
   else if(a==='impparse'&&can(S.user,'siswa')){var tx=document.getElementById('imptxt'),val=tx?tx.value:'';if(!val.trim()){S.err='Tempel data atau pilih file terlebih dahulu.';S.flash='';render();return}S.err='';S.flash='';S.imp=buildImport(parseDelim(val),'data tempel');render()}
   else if(a==='impgo'&&can(S.user,'siswa')&&S.imp){var add=S.imp.items.filter(function(x){return x.st==='ok'});add.forEach(function(x){D.students.push({id:uid(),nis:x.nis,nama:x.nama,kelas:x.kelas,pass:x.nis})});save();S.imp=null;S.err='';S.flash=add.length+' siswa berhasil diimpor. Sandi awal sama dengan NIS.';render()}
+  else if(a==='gparse'&&can(S.user,'akun')){var gt=document.getElementById('gtxt'),gv=gt?gt.value:'';if(!gv.trim()){S.err='Tempel data atau pilih file terlebih dahulu.';S.flash='';render();return}S.err='';S.flash='';S.gimp=buildGtk(parseDelim(gv),'data tempel');render()}
+  else if(a==='ggo'&&can(S.user,'akun')&&S.gimp){var gadd=S.gimp.items.filter(function(x){return x.st==='ok'}),cr=[];gadd.forEach(function(x){var u={id:uid(),user:x.user,nama:x.nama,role:x.tugas,pass:x.pass,nip:x.nip,jenis:x.jenis,kelas:x.kelas};if(x.tugas==='Guru piket'){u.piket=[];u.lokasi=''}D.staff.push(u);cr.push([x.nama,x.tugas,x.user,x.pass])});save();S.gcred=cr;S.gimp=null;S.err='';S.flash=gadd.length+' GTK berhasil diimpor.';render()}
+  else if(a==='gclear'){S.gimp=null;S.err='';S.flash='';render()}
+  else if(a==='gcsv'&&S.gcred){dl('akun-gtk-'+today()+'.csv',[['Nama','Tugas','Username','Sandi awal']].concat(S.gcred))}
+  else if(a==='gtpl'){dl('template-gtk.csv',[['NIP','Nama','Jenis','Tugas','Kelas'],['198501012010011001','Ibu Contoh, S.Pd','Guru','Wali kelas','XI IPA 1'],['','Bapak Contoh, S.Pd','Guru','Guru piket','XI IPS 2|XI IPA 1'],['199001012015011002','Ibu Tata Usaha','Tenaga Kependidikan','Tanpa tugas','']])}
+  else if(a==='gpw'&&can(S.user,'akun')){var gp=D.staff.find(function(x){return x.id===t.dataset.id});if(gp&&gp.id!==S.user.id){gp.pass=rpass();save();S.err='';S.flash='Sandi baru '+gp.nama+' ('+gp.user+'): '+gp.pass+'. Catat dan sampaikan ke yang bersangkutan.';render()}}
   else if(a==='impclear'){S.imp=null;S.err='';S.flash='';render()}
   else if(a==='impcopy'){var smp='NIS;Nama;Kelas\n24007;Contoh Siswa Satu;XI IPA 1\n24008;Contoh Siswa Dua;XI IPS 2';try{navigator.clipboard.writeText(smp).then(function(){S.err='';S.flash='Contoh format disalin.';render()},function(){S.flash='';S.err='Salin otomatis tidak didukung. Pilih teks contoh lalu salin manual.';render()})}catch(er){S.flash='';S.err='Salin otomatis tidak didukung. Pilih teks contoh lalu salin manual.';render()}}
   else if(a==='delacc'&&can(S.user,'akun')){var aid=t.dataset.id;if(aid!==S.user.id){D.staff=D.staff.filter(function(x){return x.id!==aid});save();render()}}
@@ -604,6 +660,8 @@ $app.addEventListener('click',function(e){
 });
 $app.addEventListener('change',function(e){
   if(e.target.id==='impfile'){readImpFile(e.target.files&&e.target.files[0]);return}
+  if(e.target.id==='gfile'){readImpFile(e.target.files&&e.target.files[0],'gtk');return}
+  if(e.target.dataset.a==='tugas'&&can(S.user,'akun')){var tg5=D.staff.find(function(x){return x.id===e.target.dataset.id}),nr=e.target.value;if(tg5&&tg5.id!==S.user.id){if(tg5.role==='Admin'&&nr!=='Admin'&&D.staff.filter(function(x){return x.role==='Admin'}).length<2){S.err='Harus ada minimal satu Admin.';S.flash=''}else{tg5.role=nr;if(nr==='Guru piket')tg5.piket=tg5.piket||[];if(!allScope(tg5))tg5.kelas=tg5.kelas||[];S.err='';S.flash='Tugas '+tg5.nama+' diubah menjadi '+nr+'.';save()}render()}return}
   if(e.target.dataset.a==='lok'&&can(S.user,'jadwal')){var lk=D.staff.find(function(x){return x.id===e.target.dataset.id});if(lk){lk.lokasi=e.target.value.trim();save();render()}return}
   if(e.target.dataset.a==='rk'){rkF()[e.target.dataset.k]=e.target.value;if(e.target.dataset.k==='kelas')rkF().sid='';render();return}
   if(e.target.dataset.a==='kat'){var f=e.target.form,type=f.dataset.type,m=KAT[type][+e.target.value][1]===0;document.getElementById('manual').hidden=!m}
@@ -611,6 +669,7 @@ $app.addEventListener('change',function(e){
   if(e.target.dataset.a==='pk'&&can(S.user,'jadwal')){var st=D.staff.find(function(x){return x.id===e.target.dataset.id}),d=+e.target.dataset.d;if(st){st.piket=st.piket||[];var ix=st.piket.indexOf(d);if(e.target.checked&&ix<0)st.piket.push(d);if(!e.target.checked&&ix>-1)st.piket.splice(ix,1);save();render()}}
 });
 $app.addEventListener('input',function(e){
+  if(e.target.dataset.a==='gq'){document.getElementById('glist').innerHTML=gList(e.target.value);return}
   if(e.target.dataset.a==='q'){document.getElementById('stlist').innerHTML=stList(e.target.value)}
 });
 $app.addEventListener('submit',function(e){
@@ -623,6 +682,7 @@ $app.addEventListener('submit',function(e){
   if(k==='lg'){
     var u=D.staff.find(function(x){return x.user===v('u').toLowerCase()});
     if(!u||u.pass!==v('p')){S.err='Username atau kata sandi tidak cocok. Periksa lagi atau ketuk akun contoh di bawah.';render();return}
+    if(u.role==='Tanpa tugas'||!TUGAS.some(function(t){return t===u.role})){S.err='Akunmu belum diberi tugas di aplikasi. Hubungi admin.';render();return}
     S.user=u;S.kind='staff';S.tab='ringkasan';go('staff');return}
   if(k==='rec'){
     if(!can(S.user,'catat')){S.err='Peranmu hanya bisa melihat data.';render();return}
